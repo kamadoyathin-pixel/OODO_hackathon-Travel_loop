@@ -1,0 +1,2120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TravelLoop</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+<style>
+:root {
+  --forest: #1e3d2f;
+  --moss: #2d5a3d;
+  --fern: #4a7c5e;
+  --sage: #7aab8a;
+  --mist: #c5dccb;
+  --cream: #f4f0e6;
+  --gold: #c49a3c;
+  --gold-light: #e8c96a;
+  --bark: #2a1f14;
+  --white: #fafaf7;
+  --gray1: #f0ede6;
+  --gray2: #ddd9d0;
+  --gray3: #aaa89f;
+  --gray4: #6b6960;
+  --red: #c0392b;
+  --blue: #2980b9;
+  --sidebar-w: 220px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--gray1);color:var(--bark);height:100vh;overflow:hidden;display:flex;}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+@keyframes slideIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+.sidebar{width:var(--sidebar-w);background:var(--forest);display:flex;flex-direction:column;height:100vh;flex-shrink:0;z-index:50;}
+.sidebar-logo{padding:1.4rem 1.2rem;border-bottom:1px solid rgba(255,255,255,0.08);}
+.sidebar-logo h1{font-family:'Playfair Display',serif;color:var(--cream);font-size:1.3rem;letter-spacing:0.02em;}
+.sidebar-logo h1 span{color:var(--gold-light);font-style:italic;}
+.sidebar-logo p{font-size:0.65rem;color:var(--sage);letter-spacing:0.1em;text-transform:uppercase;margin-top:2px;}
+.sidebar-user{padding:1rem 1.2rem;display:flex;align-items:center;gap:0.7rem;border-bottom:1px solid rgba(255,255,255,0.08);}
+.user-avatar{width:36px;height:36px;border-radius:50%;background:var(--fern);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;overflow:hidden;}
+.user-avatar img{width:100%;height:100%;object-fit:cover;}
+.user-info{min-width:0;}
+.user-info .name{font-size:0.82rem;font-weight:600;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.user-info .role{font-size:0.68rem;color:var(--sage);}
+.sidebar-nav{flex:1;overflow-y:auto;padding:0.6rem 0;}
+.nav-section{padding:0.4rem 1.2rem;font-size:0.62rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--sage);margin-top:0.4rem;}
+.nav-item{display:flex;align-items:center;gap:0.75rem;padding:0.65rem 1.2rem;cursor:pointer;transition:all 0.2s;color:rgba(255,255,255,0.65);font-size:0.82rem;border-left:3px solid transparent;}
+.nav-item:hover{background:rgba(255,255,255,0.06);color:var(--cream);}
+.nav-item.active{background:rgba(196,154,60,0.15);color:var(--gold-light);border-left-color:var(--gold);}
+.nav-item .icon{font-size:1rem;width:20px;text-align:center;flex-shrink:0;}
+.nav-item .badge{margin-left:auto;background:var(--gold);color:var(--bark);font-size:0.62rem;font-weight:700;padding:1px 6px;border-radius:10px;}
+.sidebar-bottom{padding:1rem 1.2rem;border-top:1px solid rgba(255,255,255,0.08);}
+.logout-btn{display:flex;align-items:center;gap:0.6rem;color:rgba(255,255,255,0.4);font-size:0.78rem;cursor:pointer;transition:color 0.2s;}
+.logout-btn:hover{color:var(--red);}
+
+.main{flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden;}
+.topbar{background:var(--white);border-bottom:1px solid var(--gray2);padding:0 1.5rem;height:52px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.topbar-left{display:flex;align-items:center;gap:0.8rem;}
+.page-title{font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--forest);}
+.breadcrumb{font-size:0.75rem;color:var(--gray3);}
+.topbar-right{display:flex;align-items:center;gap:0.6rem;}
+.search-bar{display:flex;align-items:center;background:var(--gray1);border:1px solid var(--gray2);padding:0.35rem 0.8rem;gap:0.5rem;border-radius:4px;}
+.search-bar input{border:none;background:transparent;font-size:0.8rem;width:160px;outline:none;color:var(--bark);font-family:'DM Sans',sans-serif;}
+.topbar-btn{background:var(--forest);color:var(--cream);border:none;padding:0.4rem 1rem;font-size:0.78rem;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:500;display:flex;align-items:center;gap:0.4rem;transition:background 0.2s;}
+.topbar-btn:hover{background:var(--moss);}
+.topbar-btn.outline{background:transparent;border:1px solid var(--gray2);color:var(--gray4);}
+.topbar-btn.outline:hover{border-color:var(--forest);color:var(--forest);}
+.filter-btn{background:transparent;border:1px solid var(--gray2);padding:0.35rem 0.7rem;font-size:0.75rem;cursor:pointer;color:var(--gray4);font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:0.3rem;}
+.sort-btn{background:transparent;border:1px solid var(--gray2);padding:0.35rem 0.7rem;font-size:0.75rem;cursor:pointer;color:var(--gray4);font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:0.3rem;}
+
+.content{flex:1;overflow-y:auto;padding:1.5rem;}
+
+.screen{display:none;}
+.screen.active{display:block;}
+
+.auth-wrap{min-height:calc(100vh - 52px);display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--forest) 0%,var(--moss) 100%);}
+.auth-card{background:var(--white);padding:2.5rem;width:360px;box-shadow:0 20px 60px rgba(0,0,0,0.3);}
+.auth-card h2{font-family:'Playfair Display',serif;font-size:1.6rem;color:var(--forest);margin-bottom:0.3rem;}
+.auth-card p{font-size:0.82rem;color:var(--gray3);margin-bottom:1.8rem;}
+.avatar-upload{display:flex;flex-direction:column;align-items:center;margin-bottom:1.5rem;}
+.avatar-circle{width:70px;height:70px;border-radius:50%;background:var(--gray1);border:2px dashed var(--gray2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.6rem;margin-bottom:0.4rem;overflow:hidden;transition:border-color 0.2s;}
+.avatar-circle:hover{border-color:var(--forest);}
+.avatar-circle img{width:100%;height:100%;object-fit:cover;}
+.avatar-label{font-size:0.7rem;color:var(--gray3);}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-bottom:0.7rem;}
+.form-group{margin-bottom:0.7rem;}
+.form-group label{display:block;font-size:0.72rem;font-weight:600;color:var(--gray4);margin-bottom:0.3rem;text-transform:uppercase;letter-spacing:0.05em;}
+.form-group input,.form-group select,.form-group textarea{width:100%;border:1px solid var(--gray2);padding:0.6rem 0.8rem;font-size:0.82rem;font-family:'DM Sans',sans-serif;outline:none;background:var(--white);color:var(--bark);transition:border-color 0.2s;}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--forest);}
+.form-group textarea{resize:vertical;min-height:70px;}
+.btn{border:none;padding:0.7rem 1.4rem;font-size:0.82rem;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;gap:0.4rem;}
+.btn-primary{background:var(--forest);color:var(--cream);}
+.btn-primary:hover{background:var(--moss);}
+.btn-gold{background:var(--gold);color:var(--bark);}
+.btn-gold:hover{background:var(--gold-light);}
+.btn-outline{background:transparent;border:1px solid var(--gray2);color:var(--gray4);}
+.btn-outline:hover{border-color:var(--forest);color:var(--forest);}
+.btn-danger{background:var(--red);color:#fff;}
+.btn-sm{padding:0.4rem 0.8rem;font-size:0.75rem;}
+.btn-full{width:100%;justify-content:center;}
+.auth-link{text-align:center;margin-top:1rem;font-size:0.78rem;color:var(--gray3);}
+.auth-link a{color:var(--forest);font-weight:600;cursor:pointer;text-decoration:none;}
+.forgot{text-align:right;font-size:0.72rem;color:var(--forest);cursor:pointer;margin-top:0.3rem;margin-bottom:1rem;}
+
+.welcome-banner{background:linear-gradient(135deg,var(--forest),var(--moss));padding:1.5rem 2rem;margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between;}
+.welcome-banner h2{font-family:'Playfair Display',serif;color:var(--cream);font-size:1.4rem;}
+.welcome-banner p{color:var(--mist);font-size:0.82rem;margin-top:0.2rem;}
+.welcome-banner .banner-img{font-size:3rem;opacity:0.7;}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;}
+.card{background:var(--white);padding:1.2rem;border:1px solid var(--gray2);}
+.card-title{font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--gray3);margin-bottom:0.8rem;display:flex;align-items:center;justify-content:space-between;}
+.card-title a{font-size:0.7rem;color:var(--forest);cursor:pointer;font-weight:600;text-decoration:none;}
+.stat-card{background:var(--white);padding:1.2rem;border:1px solid var(--gray2);border-left:4px solid var(--fern);}
+.stat-card .num{font-family:'Playfair Display',serif;font-size:2rem;color:var(--forest);}
+.stat-card .label{font-size:0.72rem;color:var(--gray3);text-transform:uppercase;letter-spacing:0.05em;}
+.stat-card .trend{font-size:0.72rem;color:var(--sage);margin-top:0.2rem;}
+
+.trip-card{background:var(--white);border:1px solid var(--gray2);overflow:hidden;transition:box-shadow 0.2s;cursor:pointer;}
+.trip-card:hover{box-shadow:0 4px 20px rgba(0,0,0,0.1);}
+.trip-card-img{height:90px;background:linear-gradient(135deg,var(--fern),var(--sage));display:flex;align-items:center;justify-content:center;font-size:2.5rem;position:relative;}
+.trip-card-img .status-badge{position:absolute;top:8px;right:8px;font-size:0.62rem;padding:2px 8px;font-weight:700;letter-spacing:0.05em;text-transform:uppercase;}
+.badge-ongoing{background:var(--gold);color:var(--bark);}
+.badge-upcoming{background:var(--blue);color:#fff;}
+.badge-completed{background:var(--gray3);color:#fff;}
+.trip-card-body{padding:0.9rem;}
+.trip-card-body h4{font-size:0.88rem;font-weight:600;color:var(--forest);margin-bottom:0.2rem;}
+.trip-card-body .dates{font-size:0.72rem;color:var(--gray3);}
+.trip-card-body .stops{font-size:0.72rem;color:var(--fern);margin-top:0.3rem;}
+.trip-card-actions{display:flex;gap:0.4rem;padding:0.6rem 0.9rem;border-top:1px solid var(--gray1);}
+
+.dest-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0.8rem;margin-top:0.5rem;}
+.dest-chip{background:linear-gradient(135deg,var(--fern),var(--sage));padding:0.8rem;text-align:center;cursor:pointer;transition:opacity 0.2s;}
+.dest-chip:hover{opacity:0.85;}
+.dest-chip .flag{font-size:1.5rem;}
+.dest-chip .city{font-size:0.72rem;font-weight:600;color:var(--cream);margin-top:0.3rem;}
+.dest-chip .country{font-size:0.62rem;color:rgba(255,255,255,0.7);}
+
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;}
+.section-header h3{font-size:0.88rem;font-weight:700;color:var(--forest);}
+
+.stop-section{background:var(--white);border:1px solid var(--gray2);padding:1.2rem;margin-bottom:1rem;}
+.stop-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.8rem;}
+.stop-header h4{font-size:0.9rem;font-weight:600;color:var(--forest);}
+.stop-meta{display:flex;gap:0.8rem;margin-bottom:0.8rem;flex-wrap:wrap;}
+.stop-meta-item{font-size:0.75rem;color:var(--gray4);background:var(--gray1);padding:0.3rem 0.8rem;border:1px solid var(--gray2);}
+.activity-row{display:flex;align-items:center;gap:0.5rem;padding:0.5rem;background:var(--gray1);margin-bottom:0.4rem;font-size:0.8rem;}
+.activity-row .drag{cursor:grab;color:var(--gray3);font-size:0.9rem;}
+.activity-row .act-name{flex:1;font-size:0.8rem;}
+.activity-row .act-cost{font-size:0.75rem;color:var(--fern);font-weight:600;width:70px;text-align:right;}
+.activity-row .act-del{background:none;border:none;color:var(--gray3);cursor:pointer;font-size:0.9rem;padding:0 4px;}
+.activity-row .act-del:hover{color:var(--red);}
+.add-activity-row{display:flex;gap:0.5rem;margin-top:0.5rem;}
+.add-activity-row input{flex:1;border:1px dashed var(--gray2);padding:0.4rem 0.7rem;font-size:0.78rem;font-family:'DM Sans',sans-serif;background:transparent;outline:none;}
+.add-activity-row input:focus{border-color:var(--forest);}
+
+.itinerary-day{margin-bottom:1.5rem;}
+.day-header{display:flex;align-items:center;gap:0.8rem;margin-bottom:0.8rem;}
+.day-badge{background:var(--forest);color:var(--cream);font-size:0.72rem;font-weight:700;padding:0.3rem 0.8rem;letter-spacing:0.05em;}
+.day-city{font-size:0.9rem;font-weight:600;color:var(--forest);}
+.activity-block{display:flex;align-items:center;background:var(--white);border:1px solid var(--gray2);padding:0.7rem 1rem;margin-bottom:0.4rem;gap:1rem;}
+.activity-block .time{font-size:0.72rem;color:var(--gray3);width:50px;flex-shrink:0;}
+.activity-block .name{flex:1;font-size:0.83rem;font-weight:500;}
+.activity-block .cost{font-size:0.78rem;color:var(--fern);font-weight:600;}
+
+.budget-overview{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem;}
+.budget-big{background:var(--forest);color:var(--cream);padding:1.5rem;}
+.budget-big .label{font-size:0.72rem;color:var(--sage);text-transform:uppercase;letter-spacing:0.05em;}
+.budget-big .amount{font-family:'Playfair Display',serif;font-size:2.2rem;margin:0.3rem 0;}
+.budget-big .sub{font-size:0.78rem;color:var(--mist);}
+.budget-breakdown{display:grid;grid-template-columns:1fr 1fr;gap:0.7rem;margin-top:1rem;}
+.breakdown-item{background:var(--white);border:1px solid var(--gray2);padding:0.9rem;}
+.breakdown-item .cat{font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--gray3);margin-bottom:0.3rem;}
+.breakdown-item .val{font-size:1.1rem;font-weight:700;color:var(--forest);}
+.breakdown-item .bar{height:4px;background:var(--gray1);margin-top:0.5rem;}
+.breakdown-item .bar-fill{height:100%;background:var(--fern);}
+.alert-row{display:flex;align-items:center;gap:0.6rem;background:#fef9e7;border:1px solid #f9ca24;padding:0.7rem 1rem;font-size:0.8rem;margin-bottom:0.7rem;color:#7d6608;}
+.alert-row .icon{font-size:1rem;}
+.pie-wrap{display:flex;align-items:center;gap:2rem;margin-top:1rem;}
+.pie-svg{flex-shrink:0;}
+.pie-legend{display:flex;flex-direction:column;gap:0.5rem;}
+.pie-legend-item{display:flex;align-items:center;gap:0.5rem;font-size:0.78rem;}
+.pie-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+
+.search-result-item{background:var(--white);border:1px solid var(--gray2);padding:0.9rem 1rem;margin-bottom:0.5rem;display:flex;align-items:center;gap:1rem;transition:border-color 0.2s;}
+.search-result-item:hover{border-color:var(--fern);}
+.result-icon{font-size:1.6rem;width:40px;text-align:center;flex-shrink:0;}
+.result-info{flex:1;}
+.result-info h4{font-size:0.88rem;font-weight:600;color:var(--forest);}
+.result-info p{font-size:0.75rem;color:var(--gray3);margin-top:0.1rem;}
+.result-tags{display:flex;gap:0.4rem;margin-top:0.4rem;flex-wrap:wrap;}
+.tag{font-size:0.65rem;padding:2px 7px;background:var(--gray1);border:1px solid var(--gray2);color:var(--gray4);}
+.tag.green{background:#e8f5e9;border-color:#c8e6c9;color:#2e7d32;}
+.result-actions{display:flex;flex-direction:column;gap:0.4rem;align-items:flex-end;}
+.result-price{font-size:0.88rem;font-weight:700;color:var(--forest);}
+
+.checklist-category{margin-bottom:1.2rem;}
+.checklist-category-header{display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0.8rem;background:var(--forest);color:var(--cream);font-size:0.78rem;font-weight:600;cursor:pointer;}
+.checklist-item{display:flex;align-items:center;gap:0.7rem;padding:0.6rem 0.8rem;background:var(--white);border-bottom:1px solid var(--gray1);font-size:0.82rem;}
+.checklist-item input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--forest);}
+.checklist-item.checked span{text-decoration:line-through;color:var(--gray3);}
+.checklist-item .del-item{margin-left:auto;background:none;border:none;color:var(--gray3);cursor:pointer;font-size:0.8rem;}
+.checklist-item .del-item:hover{color:var(--red);}
+.add-item-row{display:flex;gap:0.5rem;padding:0.5rem 0.8rem;background:var(--gray1);}
+.add-item-row input{flex:1;border:1px solid var(--gray2);padding:0.4rem 0.7rem;font-size:0.78rem;font-family:'DM Sans',sans-serif;outline:none;background:var(--white);}
+.progress-bar{height:6px;background:var(--gray1);margin-top:0.5rem;border-radius:3px;}
+.progress-fill{height:100%;background:var(--fern);border-radius:3px;transition:width 0.3s;}
+
+.community-post{background:var(--white);border:1px solid var(--gray2);padding:1rem;margin-bottom:0.8rem;display:flex;gap:0.8rem;}
+.post-avatar{width:36px;height:36px;border-radius:50%;background:var(--fern);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;}
+.post-body{flex:1;}
+.post-body .author{font-size:0.78rem;font-weight:600;color:var(--forest);}
+.post-body .time{font-size:0.68rem;color:var(--gray3);margin-left:0.5rem;}
+.post-body .content{font-size:0.82rem;margin-top:0.3rem;line-height:1.5;color:var(--gray4);}
+.post-body .trip-ref{background:var(--gray1);border:1px solid var(--gray2);padding:0.5rem 0.8rem;margin-top:0.5rem;font-size:0.75rem;color:var(--forest);cursor:pointer;}
+.post-actions{display:flex;gap:1rem;margin-top:0.5rem;}
+.post-act-btn{background:none;border:none;font-size:0.72rem;color:var(--gray3);cursor:pointer;display:flex;align-items:center;gap:0.3rem;font-family:'DM Sans',sans-serif;}
+.post-act-btn:hover{color:var(--forest);}
+.post-act-btn.liked{color:var(--red);}
+
+.profile-header{display:flex;align-items:center;gap:1.5rem;background:var(--white);padding:1.5rem;border:1px solid var(--gray2);margin-bottom:1.2rem;}
+.profile-avatar{width:70px;height:70px;border-radius:50%;background:var(--fern);display:flex;align-items:center;justify-content:center;font-size:2rem;overflow:hidden;flex-shrink:0;cursor:pointer;}
+.profile-avatar img{width:100%;height:100%;object-fit:cover;}
+.profile-header h3{font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--forest);}
+.profile-header p{font-size:0.78rem;color:var(--gray3);margin-top:0.2rem;}
+
+.trip-mini-card{background:var(--gray1);border:1px solid var(--gray2);padding:0.7rem;display:inline-block;cursor:pointer;margin-right:0.7rem;margin-bottom:0.7rem;vertical-align:top;min-width:100px;}
+.trip-mini-card .mini-icon{font-size:1.5rem;margin-bottom:0.3rem;}
+.trip-mini-card .mini-name{font-size:0.72rem;font-weight:600;color:var(--forest);}
+.trip-mini-card .mini-date{font-size:0.65rem;color:var(--gray3);}
+
+.invoice-card{background:var(--white);border:1px solid var(--gray2);padding:1.5rem;margin-bottom:1rem;}
+.invoice-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.5rem;}
+.invoice-logo-area h3{font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--forest);}
+.invoice-logo-area p{font-size:0.72rem;color:var(--gray3);}
+.invoice-meta{text-align:right;font-size:0.75rem;color:var(--gray4);}
+.invoice-meta strong{color:var(--forest);}
+.invoice-table{width:100%;border-collapse:collapse;font-size:0.8rem;}
+.invoice-table th{background:var(--forest);color:var(--cream);padding:0.6rem 0.8rem;text-align:left;font-size:0.72rem;font-weight:600;letter-spacing:0.05em;}
+.invoice-table td{padding:0.6rem 0.8rem;border-bottom:1px solid var(--gray1);}
+.invoice-table tr:hover td{background:var(--gray1);}
+.invoice-totals{display:flex;justify-content:flex-end;}
+.invoice-totals-inner{width:250px;}
+.invoice-total-row{display:flex;justify-content:space-between;padding:0.4rem 0;font-size:0.8rem;border-bottom:1px solid var(--gray1);}
+.invoice-total-row.grand{font-weight:700;color:var(--forest);border-top:2px solid var(--forest);border-bottom:none;font-size:0.9rem;}
+
+.admin-stat{background:var(--white);border:1px solid var(--gray2);border-left:4px solid var(--gold);padding:1rem;}
+.admin-stat .num{font-family:'Playfair Display',serif;font-size:1.8rem;color:var(--forest);}
+.admin-stat .label{font-size:0.7rem;color:var(--gray3);text-transform:uppercase;letter-spacing:0.05em;}
+.admin-table{width:100%;border-collapse:collapse;font-size:0.8rem;}
+.admin-table th{background:var(--gray1);padding:0.6rem 0.8rem;text-align:left;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:var(--gray4);border-bottom:2px solid var(--gray2);}
+.admin-table td{padding:0.6rem 0.8rem;border-bottom:1px solid var(--gray1);}
+.admin-table tr:hover td{background:var(--gray1);}
+.bar-chart{display:flex;align-items:flex-end;gap:0.4rem;height:80px;padding:0.5rem 0;}
+.bar-chart-bar{flex:1;background:var(--fern);min-width:20px;transition:height 0.3s;position:relative;cursor:pointer;}
+.bar-chart-bar:hover{background:var(--forest);}
+.bar-chart-bar .bar-label{position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);font-size:0.6rem;color:var(--gray3);white-space:nowrap;}
+
+.note-card{background:var(--white);border:1px solid var(--gray2);padding:1rem;margin-bottom:0.7rem;}
+.note-card .note-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.5rem;}
+.note-card .note-title{font-size:0.85rem;font-weight:600;color:var(--forest);}
+.note-card .note-meta{font-size:0.68rem;color:var(--gray3);}
+.note-card .note-body{font-size:0.8rem;color:var(--gray4);line-height:1.6;}
+.note-tabs{display:flex;gap:0;margin-bottom:1rem;border:1px solid var(--gray2);}
+.note-tab{padding:0.5rem 1rem;font-size:0.78rem;font-weight:500;cursor:pointer;background:var(--white);border-right:1px solid var(--gray2);color:var(--gray4);transition:all 0.2s;}
+.note-tab:last-child{border-right:none;}
+.note-tab.active{background:var(--forest);color:var(--cream);}
+
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:200;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--white);padding:1.8rem;width:420px;max-height:90vh;overflow-y:auto;position:relative;}
+.modal h3{font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--forest);margin-bottom:1.2rem;}
+.modal-close{position:absolute;top:1rem;right:1rem;background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--gray3);}
+.modal-close:hover{color:var(--bark);}
+
+.public-banner{background:linear-gradient(135deg,var(--forest),var(--fern));padding:2rem;text-align:center;margin-bottom:1.5rem;}
+.public-banner h2{font-family:'Playfair Display',serif;color:var(--cream);font-size:1.6rem;}
+.public-banner p{color:var(--mist);font-size:0.85rem;margin-top:0.3rem;}
+.public-url{display:flex;align-items:center;gap:0.5rem;background:var(--gray1);border:1px solid var(--gray2);padding:0.6rem 1rem;font-size:0.78rem;color:var(--gray4);margin-bottom:1rem;}
+.public-url span{flex:1;font-family:monospace;}
+.share-row{display:flex;gap:0.6rem;flex-wrap:wrap;}
+
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--forest);color:var(--cream);padding:0.7rem 1.2rem;font-size:0.82rem;z-index:500;display:none;align-items:center;gap:0.5rem;box-shadow:0 4px 20px rgba(0,0,0,0.2);animation:slideIn 0.3s ease;}
+.toast.show{display:flex;}
+
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--gray2);border-radius:2px;}
+
+.view-toggle{display:flex;border:1px solid var(--gray2);overflow:hidden;}
+.view-toggle button{padding:0.35rem 0.7rem;font-size:0.75rem;border:none;background:var(--white);color:var(--gray4);cursor:pointer;font-family:'DM Sans',sans-serif;}
+.view-toggle button.active{background:var(--forest);color:var(--cream);}
+
+.tabs{display:flex;border-bottom:2px solid var(--gray2);margin-bottom:1.2rem;gap:0;}
+.tab-btn{padding:0.6rem 1.2rem;font-size:0.8rem;font-weight:600;cursor:pointer;background:none;border:none;color:var(--gray3);font-family:'DM Sans',sans-serif;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all 0.2s;}
+.tab-btn.active{color:var(--forest);border-bottom-color:var(--forest);}
+.tab-pane{display:none;}
+.tab-pane.active{display:block;}
+
+.two-col{display:grid;grid-template-columns:2fr 1fr;gap:1.2rem;}
+.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;}
+.full-btn-row{display:flex;gap:0.6rem;justify-content:flex-end;margin-top:1rem;}
+.divider{border:none;border-top:1px solid var(--gray2);margin:1rem 0;}
+
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-top:0.5rem;}
+.cal-header-cell{text-align:center;font-size:0.65rem;font-weight:700;text-transform:uppercase;color:var(--gray3);padding:0.3rem;}
+.cal-day{min-height:50px;background:var(--white);border:1px solid var(--gray1);padding:0.3rem;font-size:0.65rem;color:var(--gray3);}
+.cal-day.has-event{background:#e8f5e9;border-color:var(--sage);}
+.cal-day .cal-num{font-weight:700;color:var(--forest);}
+.cal-day .cal-event{background:var(--forest);color:var(--cream);padding:1px 3px;margin-top:2px;font-size:0.6rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+#loadingOverlay{display:none;position:fixed;inset:0;background:rgba(30,61,47,0.85);z-index:1000;align-items:center;justify-content:center;flex-direction:column;gap:1rem;}
+#loadingOverlay .spin-icon{font-size:2.5rem;animation:spin 1.2s linear infinite;}
+#loadingOverlay .load-text{color:var(--cream);font-family:'DM Sans',sans-serif;font-size:0.9rem;letter-spacing:0.05em;}
+</style>
+</head>
+<body>
+
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <h1>Travel<span>Loop</span></h1>
+    <p>Plan · Explore · Share</p>
+  </div>
+  <div class="sidebar-user">
+    <div class="user-avatar" id="sidebarAvatar">🧭</div>
+    <div class="user-info">
+      <div class="name" id="sidebarName">Explorer</div>
+      <div class="role" id="sidebarRole">Traveler</div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">Main</div>
+    <div class="nav-item active" data-screen="dashboard"><span class="icon">🏠</span> Dashboard</div>
+    <div class="nav-item" data-screen="my-trips"><span class="icon">🗺️</span> My Trips <span class="badge" id="tripCountBadge">0</span></div>
+    <div class="nav-item" data-screen="create-trip"><span class="icon">✈️</span> Plan New Trip</div>
+    <div class="nav-section">Explore</div>
+    <div class="nav-item" data-screen="city-search"><span class="icon">🔍</span> City Search</div>
+    <div class="nav-item" data-screen="activity-search"><span class="icon">🎭</span> Activity Search</div>
+    <div class="nav-item" data-screen="community"><span class="icon">🌐</span> Community</div>
+    <div class="nav-section">Tools</div>
+    <div class="nav-item" data-screen="itinerary-builder"><span class="icon">🏗️</span> Itinerary Builder</div>
+    <div class="nav-item" data-screen="itinerary-view"><span class="icon">📅</span> Itinerary View</div>
+    <div class="nav-item" data-screen="budget"><span class="icon">💰</span> Budget & Costs</div>
+    <div class="nav-item" data-screen="packing"><span class="icon">🎒</span> Packing Checklist</div>
+    <div class="nav-item" data-screen="notes"><span class="icon">📝</span> Trip Notes</div>
+    <div class="nav-section">Account</div>
+    <div class="nav-item" data-screen="profile"><span class="icon">👤</span> Profile</div>
+    <div class="nav-item" data-screen="shared-view"><span class="icon">🔗</span> Share Trip</div>
+    <div class="nav-item" data-screen="invoice"><span class="icon">🧾</span> Invoice</div>
+    <div class="nav-item" data-screen="admin"><span class="icon">📊</span> Admin</div>
+  </nav>
+  <div class="sidebar-bottom">
+    <div class="logout-btn" onclick="doLogout()">🚪 <span>Sign Out</span></div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <span class="page-title" id="pageTitle">Dashboard</span>
+      <span class="breadcrumb" id="pageBreadcrumb"></span>
+    </div>
+    <div class="topbar-right">
+      <div class="search-bar">
+        <span>🔍</span>
+        <input type="text" placeholder="Search trips, cities..." id="globalSearch">
+      </div>
+      <button class="filter-btn">⚙ Filter</button>
+      <button class="sort-btn">↕ Sort</button>
+      <button class="topbar-btn" onclick="goTo('create-trip')">+ Plan a Trip</button>
+    </div>
+  </div>
+
+  <div class="content" id="contentArea">
+
+    <div class="screen active" id="screen-login">
+      <div class="auth-wrap">
+        <div class="auth-card">
+          <div class="avatar-upload">
+            <div class="avatar-circle" id="loginAvatarCircle">👤</div>
+          </div>
+          <h2>Welcome Back</h2>
+          <p>Sign in to continue your journey</p>
+          <div class="form-group">
+            <label>Email Address</label>
+            <input type="email" placeholder="you@example.com" id="loginEmail">
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <input type="password" placeholder="••••••••" id="loginPassword">
+          </div>
+          <div class="forgot" onclick="doForgotPassword()">Forgot Password?</div>
+          <button class="btn btn-primary btn-full" onclick="doLogin()">Login</button>
+          <div class="auth-link">Don't have an account? <a onclick="goTo('register')">Sign Up</a></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="screen-register">
+      <div class="auth-wrap">
+        <div class="auth-card" style="width:420px">
+          <div class="avatar-upload">
+            <div class="avatar-circle" id="regAvatarCircle" onclick="triggerAvatarUpload('regAvatarCircle','regAvatarInput')">📷</div>
+            <span class="avatar-label">Upload Photo</span>
+            <input type="file" id="regAvatarInput" accept="image/*" style="display:none" onchange="previewAvatar('regAvatarCircle','regAvatarInput')">
+          </div>
+          <h2>Create Account</h2>
+          <p>Start planning your dream travels</p>
+          <div class="form-row">
+            <div class="form-group"><label>First Name</label><input type="text" id="regFirst" placeholder="Alex"></div>
+            <div class="form-group"><label>Last Name</label><input type="text" id="regLast" placeholder="Traveler"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Email Address</label><input type="email" id="regEmail" placeholder="you@example.com"></div>
+            <div class="form-group"><label>Phone Number</label><input type="tel" id="regPhone" placeholder="+1 234 567 890"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Password</label><input type="password" id="regPassword" placeholder="At least 6 characters"></div>
+            <div class="form-group"><label>Confirm Password</label><input type="password" id="regPasswordConfirm" placeholder="Repeat password"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>City</label><input type="text" id="regCity" placeholder="New York"></div>
+            <div class="form-group"><label>Country</label><input type="text" id="regCountry" placeholder="USA"></div>
+          </div>
+          <div class="form-group"><label>About You</label><textarea id="regBio" placeholder="Tell us about yourself and your travel style..."></textarea></div>
+          <button class="btn btn-primary btn-full" onclick="doRegister()">Register User</button>
+          <div class="auth-link">Already have an account? <a onclick="goTo('login')">Sign In</a></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="screen-dashboard">
+      <div class="welcome-banner">
+        <div>
+          <h2 id="dashWelcome">Good morning! 🌿</h2>
+          <p>Ready to plan your next adventure?</p>
+        </div>
+        <div class="banner-img">🗺️</div>
+      </div>
+      <div class="grid-4" style="margin-bottom:1.2rem">
+        <div class="stat-card"><div class="num" id="statTrips">0</div><div class="label">Total Trips</div><div class="trend">↑ Plan more!</div></div>
+        <div class="stat-card" style="border-left-color:var(--gold)"><div class="num" id="statOngoing">0</div><div class="label">Ongoing</div><div class="trend">Active now</div></div>
+        <div class="stat-card" style="border-left-color:var(--blue)"><div class="num" id="statUpcoming">0</div><div class="label">Upcoming</div><div class="trend">Planned</div></div>
+        <div class="stat-card" style="border-left-color:var(--gray3)"><div class="num" id="statCompleted">0</div><div class="label">Completed</div><div class="trend">Memories!</div></div>
+      </div>
+      <div class="grid-2">
+        <div>
+          <div class="section-header">
+            <h3>Recent Trips</h3>
+            <a onclick="goTo('my-trips')" style="font-size:0.75rem;color:var(--forest);cursor:pointer;font-weight:600">View All →</a>
+          </div>
+          <div id="dashRecentTrips"><p style="color:var(--gray3);font-size:0.82rem;padding:1rem 0">No trips yet. <a onclick="goTo('create-trip')" style="color:var(--forest);cursor:pointer;font-weight:600">Plan your first trip!</a></p></div>
+        </div>
+        <div>
+          <div class="section-header"><h3>Top Destinations</h3></div>
+          <div class="dest-grid">
+            <div class="dest-chip" onclick="goTo('city-search')"><div class="flag">🗼</div><div class="city">Paris</div><div class="country">France</div></div>
+            <div class="dest-chip" onclick="goTo('city-search')"><div class="flag">🗽</div><div class="city">New York</div><div class="country">USA</div></div>
+            <div class="dest-chip" onclick="goTo('city-search')"><div class="flag">⛩️</div><div class="city">Tokyo</div><div class="country">Japan</div></div>
+            <div class="dest-chip" onclick="goTo('city-search')"><div class="flag">🏛️</div><div class="city">Rome</div><div class="country">Italy</div></div>
+          </div>
+          <div style="margin-top:1rem">
+            <div class="card">
+              <div class="card-title">Budget Highlights</div>
+              <div id="dashBudget" style="font-size:0.82rem;color:var(--gray3)">No budget data yet. Create a trip to get started.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="screen-create-trip">
+      <div class="card" style="max-width:650px">
+        <h3 style="font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--forest);margin-bottom:1.2rem">Plan a New Trip</h3>
+        <div class="form-group"><label>Trip Name</label><input type="text" id="tripName" placeholder="e.g. European Summer Adventure"></div>
+        <div class="form-row">
+          <div class="form-group"><label>Start Date</label><input type="date" id="tripStart"></div>
+          <div class="form-group"><label>End Date</label><input type="date" id="tripEnd"></div>
+        </div>
+        <div class="form-group"><label>Select a Place / Destination</label><input type="text" id="tripDest" placeholder="e.g. Paris, France"></div>
+        <div class="form-group"><label>Trip Description</label><textarea id="tripDesc" placeholder="Describe your trip goals, style, expectations..."></textarea></div>
+        <div class="form-group"><label>Cover Photo (Optional)</label><input type="file" id="tripCover" accept="image/*"></div>
+        <div class="form-group">
+          <label>Total Budget (USD)</label>
+          <input type="number" id="tripBudget" placeholder="e.g. 3000">
+        </div>
+        <hr class="divider">
+        <div style="font-size:0.82rem;font-weight:600;color:var(--forest);margin-bottom:0.8rem">Suggested Activities</div>
+        <div class="grid-3" style="margin-bottom:1rem">
+          <div class="dest-chip" style="cursor:default"><div class="flag">🏛️</div><div class="city">Museums</div></div>
+          <div class="dest-chip" style="cursor:default;background:linear-gradient(135deg,var(--moss),var(--fern))"><div class="flag">🍽️</div><div class="city">Food Tour</div></div>
+          <div class="dest-chip" style="cursor:default;background:linear-gradient(135deg,var(--gold),#d4a843)"><div class="flag">🏔️</div><div class="city">Hiking</div></div>
+          <div class="dest-chip" style="cursor:default;background:linear-gradient(135deg,var(--blue),#5ba8d4)"><div class="flag">🏖️</div><div class="city">Beach</div></div>
+          <div class="dest-chip" style="cursor:default;background:linear-gradient(135deg,#8e44ad,#bb8fce)"><div class="flag">🎭</div><div class="city">Culture</div></div>
+          <div class="dest-chip" style="cursor:default;background:linear-gradient(135deg,#d35400,#e59866)"><div class="flag">🛍️</div><div class="city">Shopping</div></div>
+        </div>
+        <div class="full-btn-row">
+          <button class="btn btn-outline" onclick="goTo('dashboard')">Cancel</button>
+          <button class="btn btn-primary" onclick="saveTrip()">💾 Save Trip</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="screen-my-trips">
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(this,'tab-ongoing')">🟡 Ongoing</button>
+        <button class="tab-btn" onclick="switchTab(this,'tab-upcoming')">🔵 Upcoming</button>
+        <button class="tab-btn" onclick="switchTab(this,'tab-completed')">✅ Completed</button>
+        <button class="tab-btn" onclick="switchTab(this,'tab-all')">📋 All Trips</button>
+      </div>
+      <div class="tab-pane active" id="tab-ongoing"><div id="trips-ongoing"></div></div>
+      <div class="tab-pane" id="tab-upcoming"><div id="trips-upcoming"></div></div>
+      <div class="tab-pane" id="tab-completed"><div id="trips-completed"></div></div>
+      <div class="tab-pane" id="tab-all"><div id="trips-all"></div></div>
+    </div>
+
+    <div class="screen" id="screen-itinerary-builder">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+        <div>
+          <div style="font-size:0.72rem;color:var(--gray3);margin-bottom:0.2rem">Building for:</div>
+          <select id="builderTripSelect" style="border:1px solid var(--gray2);padding:0.4rem 0.8rem;font-size:0.82rem;font-family:'DM Sans',sans-serif;outline:none;background:var(--white);" onchange="loadBuilderTrip()"></select>
+        </div>
+        <button class="btn btn-gold" onclick="addBuilderSection()">+ Add another Section</button>
+      </div>
+      <div id="builderSections"></div>
+      <div class="full-btn-row">
+        <button class="btn btn-outline" onclick="goTo('my-trips')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveItinerary()">💾 Save Itinerary</button>
+      </div>
+    </div>
+
+    <div class="screen" id="screen-itinerary-view">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:0.6rem">
+        <div>
+          <div style="font-size:0.72rem;color:var(--gray3);margin-bottom:0.2rem">Viewing:</div>
+          <select id="viewTripSelect" style="border:1px solid var(--gray2);padding:0.4rem 0.8rem;font-size:0.82rem;font-family:'DM Sans',sans-serif;outline:none;background:var(--white);" onchange="renderItineraryView()"></select>
+        </div>
+        <div class="view-toggle">
+          <button class="active" onclick="switchView(this,'list')">☰ List</button>
+          <button onclick="switchView(this,'calendar')">📅 Calendar</button>
+        </div>
+      </div>
+      <div id="itineraryListView"></div>
+      <div id="itineraryCalView" style="display:none"></div>
+    </div>
+
+    <div class="screen" id="screen-city-search">
+      <div style="display:flex;gap:0.6rem;margin-bottom:1rem;flex-wrap:wrap">
+        <input type="text" id="citySearchInput" placeholder="Search cities..." style="flex:1;min-width:200px;border:1px solid var(--gray2);padding:0.5rem 0.8rem;font-size:0.82rem;font-family:'DM Sans',sans-serif;outline:none;" oninput="filterCities()">
+        <select id="cityRegionFilter" style="border:1px solid var(--gray2);padding:0.5rem;font-size:0.78rem;font-family:'DM Sans',sans-serif;outline:none;" onchange="filterCities()">
+          <option value="">All Regions</option>
+          <option value="Europe">Europe</option>
+          <option value="Asia">Asia</option>
+          <option value="Americas">Americas</option>
+          <option value="Africa">Africa</option>
+          <option value="Oceania">Oceania</option>
+        </select>
+        <button class="filter-btn">⚙ Filter</button>
+        <button class="sort-btn">↕ Sort by</button>
+      </div>
+      <div id="cityResultsList"></div>
+    </div>
+
+    <div class="screen" id="screen-activity-search">
+      <div style="display:flex;gap:0.6rem;margin-bottom:1rem;flex-wrap:wrap">
+        <input type="text" id="actSearchInput" placeholder="Search activities..." style="flex:1;min-width:200px;border:1px solid var(--gray2);padding:0.5rem 0.8rem;font-size:0.82rem;font-family:'DM Sans',sans-serif;outline:none;" oninput="filterActivities()">
+        <select id="actTypeFilter" style="border:1px solid var(--gray2);padding:0.5rem;font-size:0.78rem;font-family:'DM Sans',sans-serif;outline:none;" onchange="filterActivities()">
+          <option value="">All Types</option>
+          <option value="Sightseeing">Sightseeing</option>
+          <option value="Food">Food & Drink</option>
+          <option value="Adventure">Adventure</option>
+          <option value="Culture">Culture</option>
+          <option value="Shopping">Shopping</option>
+          <option value="Nature">Nature</option>
+        </select>
+        <select id="actCostFilter" style="border:1px solid var(--gray2);padding:0.5rem;font-size:0.78rem;font-family:'DM Sans',sans-serif;outline:none;" onchange="filterActivities()">
+          <option value="">Any Cost</option>
+          <option value="free">Free</option>
+          <option value="budget">Under $20</option>
+          <option value="mid">$20–$80</option>
+          <option value="premium">$80+</option>
+        </select>
+        <button class="filter-btn">⚙ Filter</button>
+      </div>
+      <div id="activityResultsList"></div>
+    </div>
+
+    <div class="screen" id="screen-budget">
+      <div style="display:flex;align-items:center;gap:0.8rem;margin-bottom:1rem">
+        <div style="font-size:0.78rem;color:var(--gray3)">Trip:</div>
+        <select id="budgetTripSelect" style="border:1px solid var(--gray2);padding:0.4rem 0.8rem;font-size:0.82rem;font-family:'DM Sans',sans-serif;outline:none;background:var(--white);" onchange="renderBudget()"></select>
+      </div>
+      <div id="budgetContent"></div>
+    </div>
+
+    <div class="screen" id="screen-packing">
+      <div style="display:flex;align-items:center;gap:0.8rem;margin-bottom:1rem;flex-wrap:wrap">
+        <div style="font-size:0.78rem;color:var(--gray3)">Trip:</div>
+        <select id="packingTripSelect" style="border:1px solid var(--gray2);padding:0.4rem 0.8rem;font-size:0.82rem;font-family:'DM Sans',sans-serif;outline:none;background:var(--white);" onchange="renderPacking()"></select>
+        <div style="margin-left:auto;display:flex;gap:0.5rem">
+          <button class="btn btn-sm btn-outline" onclick="resetPacking()">↺ Reset</button>
+          <button class="btn btn-sm btn-primary" onclick="showPackingProgress()">📊 Progress</button>
+        </div>
+      </div>
+      <div id="packingProgress" style="margin-bottom:1rem;display:none">
+        <div style="font-size:0.78rem;font-weight:600;color:var(--forest);margin-bottom:0.3rem">Overall packing progress</div>
+        <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+        <div style="font-size:0.72rem;color:var(--gray3);margin-top:0.3rem" id="progressLabel">0 of 0 items packed</div>
+      </div>
+      <div id="packingContent"></div>
+      <div style="margin-top:1rem">
+        <button class="btn btn-gold btn-sm" onclick="openAddChecklistItemModal()">+ Add Custom Item</button>
+      </div>
+    </div>
+
+    <div class="screen" id="screen-community">
+      <div class="two-col">
+        <div>
+          <div style="display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap">
+            <input type="text" placeholder="Search community posts..." style="flex:1;min-width:180px;border:1px solid var(--gray2);padding:0.5rem 0.8rem;font-size:0.82rem;font-family:'DM Sans',sans-serif;outline:none;">
+            <button class="filter-btn">⚙ Filter</button>
+            <button class="sort-btn">↕ Sort</button>
+          </div>
+          <div id="communityPosts"></div>
+          <button class="btn btn-primary btn-sm" onclick="openPostModal()">+ Share Your Experience</button>
+        </div>
+        <div>
+          <div class="card" style="margin-bottom:1rem">
+            <div class="card-title">Community Tips</div>
+            <div style="font-size:0.78rem;color:var(--gray4);line-height:1.7">
+              The Community section lets all users share their experiences about a certain trip or activity. Use the search, grouping, filter and sorting options to find exactly what you're looking for.
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">Top Contributors</div>
+            <div id="topContributors"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="screen-profile">
+      <div class="profile-header">
+        <div class="profile-avatar" id="profileAvatarDisplay" onclick="triggerAvatarUpload('profileAvatarDisplay','profileAvatarInput')">👤</div>
+        <input type="file" id="profileAvatarInput" accept="image/*" style="display:none" onchange="previewAvatar('profileAvatarDisplay','profileAvatarInput')">
+        <div>
+          <h3 id="profileNameDisplay">Explorer</h3>
+          <p id="profileEmailDisplay">user@example.com</p>
+          <button class="btn btn-sm btn-outline" style="margin-top:0.5rem" onclick="openEditProfileModal()">✏ Edit Profile</button>
+        </div>
+      </div>
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab(this,'ptab-planned')">Planned Trips</button>
+        <button class="tab-btn" onclick="switchTab(this,'ptab-previous')">Previous Trips</button>
+        <button class="tab-btn" onclick="switchTab(this,'ptab-settings')">Settings</button>
+        <button class="tab-btn" onclick="switchTab(this,'ptab-saved')">Saved Destinations</button>
+      </div>
+      <div class="tab-pane active" id="ptab-planned">
+        <div id="profilePlannedTrips"></div>
+      </div>
+      <div class="tab-pane" id="ptab-previous">
+        <div id="profilePreviousTrips"></div>
+      </div>
+      <div class="tab-pane" id="ptab-settings">
+        <div class="card" style="max-width:480px">
+          <div class="form-group"><label>Display Name</label><input type="text" id="settingName"></div>
+          <div class="form-group"><label>Email</label><input type="email" id="settingEmail"></div>
+          <div class="form-group"><label>Language</label>
+            <select id="settingLang">
+              <option>English</option><option>Spanish</option><option>French</option><option>Japanese</option><option>Hindi</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Currency</label>
+            <select id="settingCurrency">
+              <option>USD ($)</option><option>EUR (€)</option><option>GBP (£)</option><option>JPY (¥)</option><option>INR (₹)</option>
+            </select>
+          </div>
+          <div class="full-btn-row">
+            <button class="btn btn-danger btn-sm" onclick="showToast('Account deletion requires email confirmation')">🗑 Delete Account</button>
+            <button class="btn btn-primary btn-sm" onclick="saveSettings()">💾 Save Settings</button>
+          </div>
+        </div>
+      </div>
+      <div class="tab-pane" id="ptab-saved">
+        <div style="display:flex;flex-wrap:wrap;gap:0.7rem;margin-top:0.5rem" id="savedDestinations">
+          <div class="dest-chip" style="width:100px"><div class="flag">🗼</div><div class="city">Paris</div><div class="country">France</div></div>
+          <div class="dest-chip" style="width:100px;background:linear-gradient(135deg,var(--gold),#d4a843)"><div class="flag">⛩️</div><div class="city">Kyoto</div><div class="country">Japan</div></div>
+          <div class="dest-chip" style="width:100px;background:linear-gradient(135deg,var(--blue),#5ba8d4)"><div class="flag">🏝️</div><div class="city">Bali</div><div class="country">Indonesia</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen" id="screen-shared-view">
+      <div style="display:flex;align-items:center;gap:0.8rem;margin-bottom:1rem">
+        <div style="font-size:0.78rem;color:var(--gray3)">Trip:</div>
+        <select id="shareTripSelect" style="border:1px solid var(--gray2);padding:0.4rem 0.8rem;font-size:0.82rem;font-family:'DM Sans',sans-serif;outline:none;background:var(--white);" onchange="renderSharedView()"></select>
+      </div>
+      <div id="sharedViewContent"></div>
+    </div>
+
+    <div class="screen" id="screen-notes">
+      <div style="display:flex;align-items:center;gap:0.8rem;margin-bottom:1rem;flex-wrap:wrap">
+        <div style="font-size:0.78rem;color:var(--gray3)">Trip:</div>
+        <select id="notesTripSelect" style="border:1px solid var(--gray2);padding:0.4rem 0.8rem;font-size:0.82rem;font-family:'DM Sans',sans-serif;outline:none;background:var(--white);" onchange="renderNotes()"></select>
+        <button class="btn btn-sm btn-gold" style="margin-left:auto" onclick="openAddNoteModal()">+ Add Note</button>
+      </div>
+      <div class="note-tabs">
+        <div class="note-tab active" onclick="filterNotes(this,'all')">All</div>
+        <div class="note-tab" onclick="filterNotes(this,'trip')">By Trip</div>
+        <div class="note-tab" onclick="filterNotes(this,'stop')">By Stop</div>
+      </div>
+      <div id="notesContent"></div>
+    </div>
+
+    <div class="screen" id="screen-invoice">
+      <div style="display:flex;align-items:center;gap:0.8rem;margin-bottom:1rem">
+        <div style="font-size:0.78rem;color:var(--gray3)">Trip:</div>
+        <select id="invoiceTripSelect" style="border:1px solid var(--gray2);padding:0.4rem 0.8rem;font-size:0.82rem;font-family:'DM Sans',sans-serif;outline:none;background:var(--white);" onchange="renderInvoice()"></select>
+      </div>
+      <div id="invoiceContent"></div>
+      <div class="full-btn-row">
+        <button class="btn btn-outline btn-sm" onclick="showToast('Invoice downloaded!')">⬇ Download Invoice</button>
+        <button class="btn btn-outline btn-sm" onclick="showToast('Invoice exported as PDF!')">📄 Export as PDF</button>
+        <button class="btn btn-primary btn-sm" onclick="showToast('Marked as paid!')">✓ Mark as paid</button>
+      </div>
+    </div>
+
+    <div class="screen" id="screen-admin">
+      <div class="grid-4" style="margin-bottom:1.2rem">
+        <div class="admin-stat"><div class="num" id="adminTotalTrips">0</div><div class="label">Total Trips</div></div>
+        <div class="admin-stat" style="border-left-color:var(--blue)"><div class="num" id="adminUsers">1</div><div class="label">Users</div></div>
+        <div class="admin-stat" style="border-left-color:var(--fern)"><div class="num" id="adminActivities">0</div><div class="label">Activities Added</div></div>
+        <div class="admin-stat" style="border-left-color:var(--red)"><div class="num" id="adminBudget">$0</div><div class="label">Total Budget Tracked</div></div>
+      </div>
+      <div class="two-col">
+        <div>
+          <div class="card" style="margin-bottom:1rem">
+            <div class="card-title">Trips Created (Activity)</div>
+            <div class="bar-chart" id="adminBarChart"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">All User Trips</div>
+            <table class="admin-table" id="adminTripsTable">
+              <thead><tr><th>#</th><th>Trip Name</th><th>Destination</th><th>Status</th><th>Budget</th></tr></thead>
+              <tbody id="adminTripsBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div>
+          <div class="card" style="margin-bottom:1rem">
+            <div class="card-title">Top Cities</div>
+            <div id="adminTopCities"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">User Management</div>
+            <table class="admin-table">
+              <thead><tr><th>Name</th><th>Email</th><th>Trips</th><th>Action</th></tr></thead>
+              <tbody id="adminUsersBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast">✓ <span id="toastMsg"></span></div>
+
+<div id="loadingOverlay">
+  <div class="spin-icon">🌿</div>
+  <div class="load-text">Loading...</div>
+</div>
+
+<div class="modal-overlay" id="modalAddNote">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modalAddNote')">✕</button>
+    <h3>Add Note / Reminder</h3>
+    <div class="form-group"><label>Title</label><input type="text" id="noteTitle" placeholder="e.g. Hotel check-in details"></div>
+    <div class="form-group"><label>Type</label>
+      <select id="noteType"><option value="trip">Trip Note</option><option value="stop">Stop Note</option></select>
+    </div>
+    <div class="form-group"><label>Note</label><textarea id="noteBody" style="min-height:100px" placeholder="Write your note here..."></textarea></div>
+    <button class="btn btn-primary btn-full" onclick="saveNote()">Save Note</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalEditProfile">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modalEditProfile')">✕</button>
+    <h3>Edit Profile</h3>
+    <div class="form-group"><label>Display Name</label><input type="text" id="editName" placeholder="Your name"></div>
+    <div class="form-group"><label>Email</label><input type="email" id="editEmail" placeholder="your@email.com"></div>
+    <div class="form-group"><label>City</label><input type="text" id="editCity" placeholder="Your city"></div>
+    <div class="form-group"><label>Country</label><input type="text" id="editCountry" placeholder="Your country"></div>
+    <button class="btn btn-primary btn-full" onclick="saveProfile()">Save Profile</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalPost">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modalPost')">✕</button>
+    <h3>Share Your Experience</h3>
+    <div class="form-group"><label>Your Message</label><textarea id="postContent" style="min-height:100px" placeholder="Share tips, stories, or recommendations..."></textarea></div>
+    <div class="form-group"><label>Link a Trip (Optional)</label>
+      <select id="postTripRef"><option value="">No trip</option></select>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="submitPost()">Post to Community</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalAddToTrip">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modalAddToTrip')">✕</button>
+    <h3 id="addToTripTitle">Add to Trip</h3>
+    <div class="form-group"><label>Select Trip</label>
+      <select id="addToTripSelect"></select>
+    </div>
+    <div id="addToTripExtra"></div>
+    <button class="btn btn-primary btn-full" onclick="confirmAddToTrip()">Add to Trip</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalAddChecklistItem">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modalAddChecklistItem')">✕</button>
+    <h3>Add Custom Item</h3>
+    <div class="form-group"><label>Category</label>
+      <select id="newItemCategory">
+        <option>Documents</option><option>Clothing</option><option>Electronics</option><option>Toiletries</option><option>Other</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Item Name</label><input type="text" id="newItemName" placeholder="e.g. Travel Adapter"></div>
+    <button class="btn btn-primary btn-full" onclick="addCustomChecklistItem()">Add Item</button>
+  </div>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDN8AfsQ-mU_8H31eb0oizl-0NxpuN7-70",
+  authDomain: "travel-loop-e1edf.firebaseapp.com",
+  projectId: "travel-loop-e1edf",
+  storageBucket: "travel-loop-e1edf.firebasestorage.app",
+  messagingSenderId: "53344700750",
+  appId: "1:53344700750:web:f090b1101bced969b8b61f"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+const storage = firebase.storage();
+
+let state = {
+  user: { name: '', email: '', city: '', country: '', avatar: '' },
+  trips: [],
+  notes: [],
+  posts: [],
+  pendingAddItem: null,
+  currentScreen: 'login'
+};
+
+let nextId = 1;
+
+const sampleCities = [
+  {flag:'🗼',name:'Paris',country:'France',region:'Europe',costIndex:'$$$',popularity:'★★★★★',desc:'City of Light with art, cuisine & culture'},
+  {flag:'🗽',name:'New York',country:'USA',region:'Americas',costIndex:'$$$$',popularity:'★★★★★',desc:'The city that never sleeps'},
+  {flag:'⛩️',name:'Kyoto',country:'Japan',region:'Asia',costIndex:'$$$',popularity:'★★★★☆',desc:'Ancient temples and traditional culture'},
+  {flag:'🏛️',name:'Rome',country:'Italy',region:'Europe',costIndex:'$$$',popularity:'★★★★★',desc:'Eternal City of history and gastronomy'},
+  {flag:'🏝️',name:'Bali',country:'Indonesia',region:'Asia',costIndex:'$$',popularity:'★★★★☆',desc:'Island paradise with temples and rice terraces'},
+  {flag:'🦁',name:'Nairobi',country:'Kenya',region:'Africa',costIndex:'$$',popularity:'★★★☆☆',desc:'Gateway to iconic safari experiences'},
+  {flag:'🦘',name:'Sydney',country:'Australia',region:'Oceania',costIndex:'$$$$',popularity:'★★★★☆',desc:'Harbour city with stunning beaches'},
+  {flag:'🌮',name:'Mexico City',country:'Mexico',region:'Americas',costIndex:'$$',popularity:'★★★★☆',desc:'Vibrant metropolis of food and history'},
+  {flag:'🐉',name:'Bangkok',country:'Thailand',region:'Asia',costIndex:'$',popularity:'★★★★★',desc:'Temple spires and street food paradise'},
+  {flag:'🌍',name:'Cape Town',country:'South Africa',region:'Africa',costIndex:'$$',popularity:'★★★★☆',desc:'Mountain, ocean, wine and culture'},
+];
+
+const sampleActivities = [
+  {icon:'🏛️',name:'Eiffel Tower Visit',type:'Sightseeing',cost:30,costTier:'budget',duration:'3h',desc:'Iconic iron lattice tower with panoramic views of Paris.'},
+  {icon:'🍜',name:'Street Food Tour',type:'Food',cost:45,costTier:'mid',duration:'2h',desc:'Guided tour through local markets and food stalls.'},
+  {icon:'🧗',name:'Rock Climbing',type:'Adventure',cost:85,costTier:'mid',duration:'4h',desc:'Guided rock climbing session for beginners and intermediates.'},
+  {icon:'🎭',name:'Cultural Museum Tour',type:'Culture',cost:15,costTier:'budget',duration:'2.5h',desc:'Guided tour through art and history museums.'},
+  {icon:'🛍️',name:'Local Market Shopping',type:'Shopping',cost:0,costTier:'free',duration:'2h',desc:'Explore authentic local markets and artisan crafts.'},
+  {icon:'🌊',name:'Snorkeling Adventure',type:'Adventure',cost:120,costTier:'premium',duration:'5h',desc:'Explore coral reefs with professional guides.'},
+  {icon:'🌿',name:'Nature Hike',type:'Nature',cost:20,costTier:'budget',duration:'6h',desc:'Scenic trail through national park with wildlife spotting.'},
+  {icon:'🎨',name:'Cooking Class',type:'Culture',cost:65,costTier:'mid',duration:'3h',desc:'Learn to cook local dishes with professional chefs.'},
+  {icon:'🚤',name:'Boat Tour',type:'Sightseeing',cost:55,costTier:'mid',duration:'3h',desc:'Scenic boat tour along the coastline or river.'},
+  {icon:'🦁',name:'Safari Game Drive',type:'Nature',cost:200,costTier:'premium',duration:'8h',desc:'Guided safari through national reserve seeing the Big Five.'},
+];
+
+const defaultPacking = {
+  'Documents': ['Passport','Flight Tickets (printed)','Hotel booking confirmation','Travel insurance details'],
+  'Clothing': ['Comfortable walking shoes','Formal evening dress','3x Shirts / casual t-shirts','Swimwear / beachwear'],
+  'Electronics': ['Phone charger','Universal power adapter','Camera / spare batteries','Portable power bank'],
+  'Toiletries': ['Sunscreen SPF 50','Toothbrush & toothpaste','Medications / first aid kit','Shampoo & conditioner'],
+};
+
+const seedPosts = [
+  {id:1,author:'Maria K.',avatar:'🌺',content:'Just got back from Kyoto – the bamboo forest at Arashiyama is absolutely magical at dawn. Go early to beat the crowds!',time:'2h ago',trip:'Spring Japan',likes:14,liked:false},
+  {id:2,author:'James R.',avatar:'🧔',content:'Paris in autumn is my favorite. The light is golden and museums are less packed. Budget tip: museum pass saves a ton!',time:'5h ago',trip:'',likes:8,liked:false},
+  {id:3,author:'Priya S.',avatar:'🌸',content:'Bali rice terraces at sunrise – worth every early morning alarm. Tegalalang is touristy but still stunning.',time:'1d ago',trip:'Bali Escape',likes:22,liked:false},
+];
+
+function setLoading(v) {
+  document.getElementById('loadingOverlay').style.display = v ? 'flex' : 'none';
+}
+
+async function loadUserData(user) {
+  const uid = user.uid;
+  try {
+    const userDoc = await db.doc('users/' + uid).get();
+    if (userDoc.exists) {
+      state.user = { ...userDoc.data() };
+    } else {
+      state.user = { name: user.displayName || user.email.split('@')[0], email: user.email, city: '', country: '', avatar: '' };
+    }
+  } catch (e) {
+    state.user = { name: user.email.split('@')[0], email: user.email, city: '', country: '', avatar: '' };
+  }
+
+  try {
+    const tripsSnap = await db.collection('users/' + uid + '/trips').get();
+    state.trips = tripsSnap.docs.map(d => d.data());
+    nextId = state.trips.length ? Math.max(...state.trips.map(t => t.id || 0)) + 1 : 1;
+  } catch (e) {
+    state.trips = [];
+  }
+
+  try {
+    const notesSnap = await db.collection('users/' + uid + '/notes').get();
+    state.notes = notesSnap.docs.map(d => ({ ...d.data(), firestoreId: d.id }));
+  } catch (e) {
+    state.notes = [];
+  }
+
+  updateSidebarUser();
+}
+
+async function loadCommunityPosts() {
+  try {
+    const snap = await db.collection('community').orderBy('createdAt', 'desc').limit(30).get();
+    state.posts = snap.docs.map(d => ({ ...d.data(), id: d.id, firestoreId: d.id, liked: false }));
+    renderCommunity();
+  } catch (e) {
+    state.posts = [];
+  }
+}
+
+async function saveTripDoc(trip) {
+  if (!auth.currentUser) return;
+  try {
+    await db.doc('users/' + auth.currentUser.uid + '/trips/' + trip.id).set(JSON.parse(JSON.stringify(trip)));
+  } catch (e) {
+    showToast('Sync error: ' + e.message);
+  }
+}
+
+function updateSidebarUser() {
+  document.getElementById('sidebarName').textContent = state.user.name || 'Explorer';
+  document.getElementById('sidebarRole').textContent = state.user.city ? state.user.city : 'Traveler';
+  if (state.user.avatar) {
+    document.getElementById('sidebarAvatar').innerHTML = `<img src="${state.user.avatar}" style="width:100%;height:100%;object-fit:cover">`;
+  } else {
+    document.getElementById('sidebarAvatar').textContent = '🧭';
+  }
+}
+
+function goTo(screen) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById('screen-' + screen);
+  if (!el) return;
+  el.classList.add('active');
+  state.currentScreen = screen;
+
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const navEl = document.querySelector(`.nav-item[data-screen="${screen}"]`);
+  if (navEl) navEl.classList.add('active');
+
+  const titles = {
+    login:'Sign In', register:'Create Account', dashboard:'Dashboard',
+    'create-trip':'Plan New Trip', 'my-trips':'My Trips', 'itinerary-builder':'Itinerary Builder',
+    'itinerary-view':'Itinerary View', 'city-search':'City Search', 'activity-search':'Activity Search',
+    budget:'Budget & Costs', packing:'Packing Checklist', community:'Community',
+    profile:'My Profile', 'shared-view':'Share Itinerary', notes:'Trip Notes',
+    invoice:'Expense Invoice', admin:'Admin Dashboard'
+  };
+  document.getElementById('pageTitle').textContent = titles[screen] || screen;
+
+  const authScreens = ['login', 'register'];
+  document.getElementById('sidebar').style.display = authScreens.includes(screen) ? 'none' : 'flex';
+  document.querySelector('.topbar').style.display = authScreens.includes(screen) ? 'none' : 'flex';
+
+  if (screen === 'dashboard') renderDashboard();
+  if (screen === 'my-trips') renderMyTrips();
+  if (screen === 'itinerary-builder') initBuilderScreen();
+  if (screen === 'itinerary-view') initViewScreen();
+  if (screen === 'budget') initBudgetScreen();
+  if (screen === 'packing') initPackingScreen();
+  if (screen === 'community') { renderCommunity(); loadCommunityPosts(); }
+  if (screen === 'profile') renderProfile();
+  if (screen === 'shared-view') initShareScreen();
+  if (screen === 'notes') initNotesScreen();
+  if (screen === 'invoice') initInvoiceScreen();
+  if (screen === 'admin') renderAdmin();
+  if (screen === 'city-search') renderCities();
+  if (screen === 'activity-search') renderActivities();
+}
+
+document.querySelectorAll('.nav-item[data-screen]').forEach(item => {
+  item.addEventListener('click', () => goTo(item.dataset.screen));
+});
+
+async function doLogin() {
+  const em = document.getElementById('loginEmail').value.trim();
+  const pw = document.getElementById('loginPassword').value;
+  if (!em) { showToast('Please enter your email'); return; }
+  if (!pw) { showToast('Please enter your password'); return; }
+  setLoading(true);
+  try {
+    await auth.signInWithEmailAndPassword(em, pw);
+  } catch (e) {
+    setLoading(false);
+    const msgs = {
+      'auth/user-not-found': 'No account with that email.',
+      'auth/wrong-password': 'Incorrect password.',
+      'auth/invalid-email': 'Invalid email address.',
+      'auth/invalid-credential': 'Invalid email or password.'
+    };
+    showToast(msgs[e.code] || e.message);
+  }
+}
+
+async function doRegister() {
+  const first = document.getElementById('regFirst').value.trim();
+  const last = document.getElementById('regLast').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const pw = document.getElementById('regPassword').value;
+  const pwc = document.getElementById('regPasswordConfirm').value;
+  const city = document.getElementById('regCity').value.trim();
+  const country = document.getElementById('regCountry').value.trim();
+
+  if (!first || !email || !pw) { showToast('Please fill in required fields'); return; }
+  if (pw !== pwc) { showToast('Passwords do not match'); return; }
+  if (pw.length < 6) { showToast('Password must be at least 6 characters'); return; }
+
+  setLoading(true);
+  try {
+    const cred = await auth.createUserWithEmailAndPassword(email, pw);
+    const userData = { name: (first + ' ' + last).trim(), email, city, country, avatar: '' };
+    await db.doc('users/' + cred.user.uid).set(userData);
+    state.user = userData;
+    state.trips = [];
+    state.notes = [];
+    state.posts = [];
+    nextId = 1;
+    updateSidebarUser();
+    setLoading(false);
+    goTo('dashboard');
+    showToast('Account created! Welcome, ' + first + '!');
+  } catch (e) {
+    setLoading(false);
+    const msgs = {
+      'auth/email-already-in-use': 'Email already registered.',
+      'auth/invalid-email': 'Invalid email address.',
+      'auth/weak-password': 'Password is too weak.'
+    };
+    showToast(msgs[e.code] || e.message);
+  }
+}
+
+async function doForgotPassword() {
+  const em = document.getElementById('loginEmail').value.trim();
+  if (!em) { showToast('Please enter your email first'); return; }
+  try {
+    await auth.sendPasswordResetEmail(em);
+    showToast('Password reset email sent!');
+  } catch (e) {
+    showToast(e.message);
+  }
+}
+
+async function doLogout() {
+  try {
+    await auth.signOut();
+  } catch (e) {}
+  state = { user: { name:'', email:'', city:'', country:'', avatar:'' }, trips:[], notes:[], posts:[], pendingAddItem:null, currentScreen:'login' };
+  nextId = 1;
+  goTo('login');
+}
+
+function triggerAvatarUpload(circleId, inputId) {
+  document.getElementById(inputId).click();
+}
+
+async function previewAvatar(circleId, inputId) {
+  const file = document.getElementById(inputId).files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async e => {
+    const el = document.getElementById(circleId);
+    el.innerHTML = `<img src="${e.target.result}" alt="avatar">`;
+    if (circleId === 'profileAvatarDisplay' && auth.currentUser) {
+      document.getElementById('sidebarAvatar').innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover">`;
+      try {
+        const ref = storage.ref('avatars/' + auth.currentUser.uid);
+        await ref.put(file);
+        const url = await ref.getDownloadURL();
+        state.user.avatar = url;
+        await db.doc('users/' + auth.currentUser.uid).update({ avatar: url });
+        const imgHtml = `<img src="${url}" style="width:100%;height:100%;object-fit:cover">`;
+        document.getElementById('profileAvatarDisplay').innerHTML = imgHtml;
+        document.getElementById('sidebarAvatar').innerHTML = imgHtml;
+        showToast('Avatar updated!');
+      } catch (e) {
+        showToast('Avatar upload failed: ' + e.message);
+      }
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function renderDashboard() {
+  const hr = new Date().getHours();
+  const greet = hr < 12 ? 'Good morning' : hr < 18 ? 'Good afternoon' : 'Good evening';
+  document.getElementById('dashWelcome').textContent = greet + ', ' + (state.user.name.split(' ')[0] || 'Explorer') + '! 🌿';
+
+  const ongoing = state.trips.filter(t => t.status === 'ongoing');
+  const upcoming = state.trips.filter(t => t.status === 'upcoming');
+  const completed = state.trips.filter(t => t.status === 'completed');
+  document.getElementById('statTrips').textContent = state.trips.length;
+  document.getElementById('statOngoing').textContent = ongoing.length;
+  document.getElementById('statUpcoming').textContent = upcoming.length;
+  document.getElementById('statCompleted').textContent = completed.length;
+  document.getElementById('tripCountBadge').textContent = state.trips.length;
+
+  const recent = state.trips.slice(-3).reverse();
+  const rc = document.getElementById('dashRecentTrips');
+  if (!recent.length) {
+    rc.innerHTML = '<p style="color:var(--gray3);font-size:0.82rem;padding:1rem 0">No trips yet. <a onclick="goTo(\'create-trip\')" style="color:var(--forest);cursor:pointer;font-weight:600">Plan your first trip!</a></p>';
+    return;
+  }
+  rc.innerHTML = recent.map(t => tripCardHTML(t, 'small')).join('');
+
+  const budgetEl = document.getElementById('dashBudget');
+  const total = state.trips.reduce((s, t) => s + (parseFloat(t.budget) || 0), 0);
+  budgetEl.innerHTML = total
+    ? `<div style="font-family:'Playfair Display',serif;font-size:1.4rem;color:var(--forest)">$${total.toLocaleString()}</div><div style="font-size:0.72rem;color:var(--gray3)">Total across ${state.trips.length} trip(s)</div>`
+    : 'No budget data yet.';
+}
+
+function tripCardHTML(t, size = 'normal') {
+  const colors = ['linear-gradient(135deg,#2d5a3d,#7aab8a)', 'linear-gradient(135deg,#1e3d6f,#5ba8d4)', 'linear-gradient(135deg,#6b3d1e,#d4a843)', 'linear-gradient(135deg,#6b1e3d,#d45b8a)'];
+  const col = colors[t.id % colors.length] || colors[0];
+  const statusClass = t.status === 'ongoing' ? 'badge-ongoing' : t.status === 'upcoming' ? 'badge-upcoming' : 'badge-completed';
+  return `<div class="trip-card" onclick="viewTrip(${t.id})" style="margin-bottom:0.7rem;display:flex;align-items:stretch;">
+    <div class="trip-card-img" style="background:${col};min-width:${size === 'small' ? '70px' : '110px'};width:${size === 'small' ? '70px' : '110px'};height:auto;font-size:2rem">
+      ✈️
+      <span class="status-badge ${statusClass}">${t.status}</span>
+    </div>
+    <div style="flex:1;padding:0.8rem">
+      <div style="font-size:0.88rem;font-weight:600;color:var(--forest)">${t.name}</div>
+      <div style="font-size:0.72rem;color:var(--gray3)">${t.dest || 'Unknown destination'}</div>
+      <div style="font-size:0.72rem;color:var(--gray3)">${t.start || ''} ${t.start && t.end ? '→' : ''} ${t.end || ''}</div>
+      ${t.budget ? `<div style="font-size:0.72rem;color:var(--fern);margin-top:0.2rem">Budget: $${parseFloat(t.budget).toLocaleString()}</div>` : ''}
+    </div>
+    <div style="display:flex;flex-direction:column;justify-content:center;gap:0.4rem;padding:0.8rem;border-left:1px solid var(--gray1)">
+      <button class="btn btn-sm btn-outline" onclick="event.stopPropagation();goTo('itinerary-view')">View</button>
+      <button class="btn btn-sm btn-primary" onclick="event.stopPropagation();goTo('itinerary-builder')">Edit</button>
+      <button class="btn btn-sm" style="background:none;border:1px solid #fcc;color:var(--red);font-size:0.72rem;padding:0.3rem 0.6rem;cursor:pointer" onclick="event.stopPropagation();deleteTrip(${t.id})">Del</button>
+    </div>
+  </div>`;
+}
+
+function viewTrip(id) { goTo('itinerary-view'); }
+
+async function deleteTrip(id) {
+  state.trips = state.trips.filter(t => t.id !== id);
+  if (auth.currentUser) {
+    try {
+      await db.doc('users/' + auth.currentUser.uid + '/trips/' + id).delete();
+    } catch (e) {}
+  }
+  renderMyTrips();
+  renderDashboard();
+  showToast('Trip deleted');
+}
+
+async function saveTrip() {
+  const name = document.getElementById('tripName').value.trim();
+  const start = document.getElementById('tripStart').value;
+  const end = document.getElementById('tripEnd').value;
+  const dest = document.getElementById('tripDest').value.trim();
+  const desc = document.getElementById('tripDesc').value.trim();
+  const budget = document.getElementById('tripBudget').value;
+  if (!name) { showToast('Please enter a trip name'); return; }
+
+  const now = new Date();
+  const startDate = start ? new Date(start) : null;
+  let status = 'upcoming';
+  if (startDate && startDate <= now) {
+    const endDate = end ? new Date(end) : null;
+    status = (!endDate || endDate >= now) ? 'ongoing' : 'completed';
+  }
+
+  const trip = {
+    id: nextId++,
+    name, start, end, dest, desc, budget, status,
+    sections: [{
+      id: 1,
+      title: 'Day 1 – Arrival',
+      city: dest || 'City',
+      dateRange: 'Day 1',
+      activities: [
+        { name: 'Check into hotel', cost: 0 },
+        { name: 'Explore surroundings', cost: 0 }
+      ]
+    }]
+  };
+
+  state.trips.push(trip);
+  setLoading(true);
+  await saveTripDoc(trip);
+  setLoading(false);
+
+  ['tripName', 'tripStart', 'tripEnd', 'tripDest', 'tripDesc', 'tripBudget'].forEach(id => document.getElementById(id).value = '');
+  showToast('Trip "' + name + '" created!');
+  goTo('my-trips');
+}
+
+function renderMyTrips() {
+  renderDashboard();
+  const groups = { ongoing: [], upcoming: [], completed: [] };
+  state.trips.forEach(t => { if (groups[t.status]) groups[t.status].push(t); else groups.upcoming.push(t); });
+
+  ['ongoing', 'upcoming', 'completed'].forEach(g => {
+    const el = document.getElementById('trips-' + g);
+    if (!groups[g].length) {
+      el.innerHTML = `<div style="color:var(--gray3);font-size:0.82rem;padding:1.5rem 0">No ${g} trips. <a onclick="goTo('create-trip')" style="color:var(--forest);cursor:pointer;font-weight:600">Create one!</a></div>`;
+      return;
+    }
+    el.innerHTML = groups[g].map(t => tripCardHTML(t)).join('');
+  });
+
+  const allEl = document.getElementById('trips-all');
+  if (!state.trips.length) { allEl.innerHTML = '<div style="color:var(--gray3);font-size:0.82rem;padding:1.5rem 0">No trips yet.</div>'; return; }
+  allEl.innerHTML = state.trips.map(t => tripCardHTML(t)).join('');
+}
+
+function initBuilderScreen() {
+  const sel = document.getElementById('builderTripSelect');
+  sel.innerHTML = state.trips.length ? state.trips.map(t => `<option value="${t.id}">${t.name}</option>`).join('') : '<option value="">No trips yet</option>';
+  loadBuilderTrip();
+}
+
+function loadBuilderTrip() {
+  const id = parseInt(document.getElementById('builderTripSelect').value);
+  const trip = state.trips.find(t => t.id === id);
+  const el = document.getElementById('builderSections');
+  if (!trip) { el.innerHTML = '<p style="color:var(--gray3)">No trip selected. <a onclick="goTo(\'create-trip\')" style="color:var(--forest);cursor:pointer;font-weight:600">Create a trip first.</a></p>'; return; }
+  renderBuilderSections(trip);
+}
+
+function renderBuilderSections(trip) {
+  const el = document.getElementById('builderSections');
+  if (!trip.sections || !trip.sections.length) { trip.sections = [{ id: 1, title: 'Section 1', city: trip.dest || '', dateRange: '', activities: [] }]; }
+  el.innerHTML = trip.sections.map((sec) => `
+    <div class="stop-section" id="bsec-${sec.id}">
+      <div class="stop-header">
+        <div>
+          <input type="text" value="${sec.title}" style="border:none;font-size:0.9rem;font-weight:600;color:var(--forest);background:transparent;font-family:'DM Sans',sans-serif;outline:none;width:300px;" onchange="updateSectionTitle(${trip.id},${sec.id},this.value)">
+          <div style="font-size:0.72rem;color:var(--gray3);margin-top:0.1rem">All the necessary information about this section.</div>
+        </div>
+        <button class="btn btn-sm" style="background:none;border:1px solid #fcc;color:var(--red);cursor:pointer;" onclick="removeSection(${trip.id},${sec.id})">✕ Remove</button>
+      </div>
+      <div class="stop-meta">
+        <input type="text" value="${sec.dateRange || ''}" placeholder="Date Range: e.g. Jun 5 – Jun 8" class="stop-meta-item" style="border:1px solid var(--gray2);background:var(--white);font-family:'DM Sans',sans-serif;font-size:0.75rem;cursor:text;outline:none;padding:0.3rem 0.8rem;min-width:200px" onchange="updateSectionMeta(${trip.id},${sec.id},'dateRange',this.value)">
+        <input type="number" value="${sec.budget || ''}" placeholder="Budget of this section ($)" class="stop-meta-item" style="border:1px solid var(--gray2);background:var(--white);font-family:'DM Sans',sans-serif;font-size:0.75rem;cursor:text;outline:none;padding:0.3rem 0.8rem;width:200px" onchange="updateSectionMeta(${trip.id},${sec.id},'budget',this.value)">
+      </div>
+      <div id="acts-${sec.id}">
+        ${(sec.activities || []).map((a, ai) => `
+          <div class="activity-row">
+            <span class="drag">⠿</span>
+            <span class="act-name">${a.name}</span>
+            <span class="act-cost">${a.cost ? '$' + a.cost : ''}</span>
+            <button class="act-del" onclick="removeActivity(${trip.id},${sec.id},${ai})">✕</button>
+          </div>`).join('')}
+      </div>
+      <div class="add-activity-row">
+        <input type="text" placeholder="Activity name..." id="newact-name-${sec.id}">
+        <input type="number" placeholder="Cost $" id="newact-cost-${sec.id}" style="width:90px;border:1px dashed var(--gray2);padding:0.4rem 0.7rem;font-size:0.78rem;font-family:'DM Sans',sans-serif;outline:none;">
+        <button class="btn btn-sm btn-primary" onclick="addActivity(${trip.id},${sec.id})">+ Add</button>
+      </div>
+    </div>`).join('');
+}
+
+function addBuilderSection() {
+  const id = parseInt(document.getElementById('builderTripSelect').value);
+  const trip = state.trips.find(t => t.id === id);
+  if (!trip) { showToast('Select a trip first'); return; }
+  const newId = Math.max(0, ...(trip.sections || []).map(s => s.id)) + 1;
+  trip.sections = [...(trip.sections || []), { id: newId, title: 'Section ' + (trip.sections.length + 1), city: '', dateRange: '', activities: [] }];
+  renderBuilderSections(trip);
+}
+
+function removeSection(tripId, secId) {
+  const trip = state.trips.find(t => t.id === tripId);
+  if (!trip) return;
+  trip.sections = trip.sections.filter(s => s.id !== secId);
+  renderBuilderSections(trip);
+}
+
+function updateSectionTitle(tripId, secId, val) {
+  const trip = state.trips.find(t => t.id === tripId);
+  const sec = trip && trip.sections.find(s => s.id === secId);
+  if (sec) sec.title = val;
+}
+
+function updateSectionMeta(tripId, secId, field, val) {
+  const trip = state.trips.find(t => t.id === tripId);
+  const sec = trip && trip.sections.find(s => s.id === secId);
+  if (sec) sec[field] = val;
+}
+
+function addActivity(tripId, secId) {
+  const trip = state.trips.find(t => t.id === tripId);
+  const sec = trip && trip.sections.find(s => s.id === secId);
+  if (!sec) return;
+  const name = document.getElementById(`newact-name-${secId}`).value.trim();
+  const cost = parseFloat(document.getElementById(`newact-cost-${secId}`).value) || 0;
+  if (!name) return;
+  sec.activities = [...(sec.activities || []), { name, cost }];
+  document.getElementById(`newact-name-${secId}`).value = '';
+  document.getElementById(`newact-cost-${secId}`).value = '';
+  renderBuilderSections(trip);
+  showToast('Activity added!');
+}
+
+function removeActivity(tripId, secId, ai) {
+  const trip = state.trips.find(t => t.id === tripId);
+  const sec = trip && trip.sections.find(s => s.id === secId);
+  if (!sec) return;
+  sec.activities.splice(ai, 1);
+  renderBuilderSections(trip);
+}
+
+async function saveItinerary() {
+  const id = parseInt(document.getElementById('builderTripSelect').value);
+  const trip = state.trips.find(t => t.id === id);
+  if (trip) {
+    setLoading(true);
+    await saveTripDoc(trip);
+    setLoading(false);
+  }
+  showToast('Itinerary saved!');
+  goTo('itinerary-view');
+}
+
+let currentViewMode = 'list';
+
+function initViewScreen() {
+  const sel = document.getElementById('viewTripSelect');
+  sel.innerHTML = state.trips.length ? state.trips.map(t => `<option value="${t.id}">${t.name}</option>`).join('') : '<option value="">No trips</option>';
+  renderItineraryView();
+}
+
+function renderItineraryView() {
+  const id = parseInt(document.getElementById('viewTripSelect').value);
+  const trip = state.trips.find(t => t.id === id);
+  const listEl = document.getElementById('itineraryListView');
+  const calEl = document.getElementById('itineraryCalView');
+  if (!trip) { listEl.innerHTML = '<p style="color:var(--gray3)">No trip selected.</p>'; return; }
+  if (currentViewMode === 'list') {
+    if (!trip.sections || !trip.sections.length) {
+      listEl.innerHTML = '<p style="color:var(--gray3)">No itinerary built yet. <a onclick="goTo(\'itinerary-builder\')" style="color:var(--forest);cursor:pointer;font-weight:600">Build itinerary →</a></p>';
+      return;
+    }
+    listEl.innerHTML = `
+      <div style="background:var(--forest);padding:1rem 1.5rem;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between">
+        <div>
+          <h3 style="font-family:'Playfair Display',serif;color:var(--cream);font-size:1.1rem">Itinerary for ${trip.dest || trip.name}</h3>
+          <p style="color:var(--mist);font-size:0.75rem">${trip.start || ''} ${trip.start && trip.end ? '→' : ''} ${trip.end || ''} · ${trip.sections.length} section(s)</p>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:0.7rem;color:var(--sage)">TOTAL BUDGET</div>
+          <div style="font-family:'Playfair Display',serif;font-size:1.3rem;color:var(--gold-light)">$${trip.budget || 0}</div>
+        </div>
+      </div>
+      ${trip.sections.map(sec => `
+        <div class="itinerary-day">
+          <div class="day-header">
+            <span class="day-badge">${sec.title}</span>
+            <span class="day-city">${sec.city || ''}</span>
+            ${sec.dateRange ? `<span style="font-size:0.72rem;color:var(--gray3)">${sec.dateRange}</span>` : ''}
+            ${sec.budget ? `<span style="font-size:0.72rem;color:var(--fern);margin-left:auto">Section budget: $${sec.budget}</span>` : ''}
+          </div>
+          ${(sec.activities || []).map((a, i) => `
+            <div class="activity-block">
+              <span class="time">${String(9 + i).padStart(2, '0')}:00</span>
+              <span class="name">${a.name}</span>
+              ${a.cost ? `<span class="cost">$${a.cost}</span>` : '<span class="cost" style="color:var(--gray3)">Free</span>'}
+            </div>`).join('')}
+          ${!(sec.activities && sec.activities.length) ? '<p style="color:var(--gray3);font-size:0.78rem;padding:0.5rem 0">No activities yet.</p>' : ''}
+        </div>`).join('')}`;
+  } else {
+    calEl.innerHTML = renderCalendar(trip);
+  }
+}
+
+function renderCalendar(trip) {
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  return `<div class="card">
+    <div class="card-title">Calendar View – ${trip.name}</div>
+    <div class="cal-grid">
+      ${days.map(d => `<div class="cal-header-cell">${d}</div>`).join('')}
+      ${Array.from({ length: 35 }, (_, i) => {
+        const dayNum = i - 3;
+        const hasEvent = dayNum > 0 && dayNum <= 21 && (dayNum % 4 === 0 || dayNum % 7 === 1);
+        return `<div class="cal-day${hasEvent ? ' has-event' : ''}">
+          ${dayNum > 0 && dayNum <= 31 ? `<span class="cal-num">${dayNum}</span>` : ''}
+          ${hasEvent ? `<div class="cal-event">${trip.dest || trip.name}</div>` : ''}
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+
+function switchView(btn, mode) {
+  document.querySelectorAll('.view-toggle button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentViewMode = mode;
+  const listEl = document.getElementById('itineraryListView');
+  const calEl = document.getElementById('itineraryCalView');
+  if (mode === 'list') { listEl.style.display = ''; calEl.style.display = 'none'; }
+  else { listEl.style.display = 'none'; calEl.style.display = ''; }
+  renderItineraryView();
+}
+
+function renderCities() {
+  const query = (document.getElementById('citySearchInput') || { value: '' }).value.toLowerCase();
+  const region = (document.getElementById('cityRegionFilter') || { value: '' }).value;
+  const filtered = sampleCities.filter(c =>
+    (!query || c.name.toLowerCase().includes(query) || c.country.toLowerCase().includes(query)) &&
+    (!region || c.region === region)
+  );
+  const el = document.getElementById('cityResultsList');
+  el.innerHTML = filtered.map(c => `
+    <div class="search-result-item">
+      <div class="result-icon">${c.flag}</div>
+      <div class="result-info">
+        <h4>${c.name}</h4>
+        <p>${c.country} · ${c.region}</p>
+        <p style="margin-top:0.2rem;font-size:0.75rem">${c.desc}</p>
+        <div class="result-tags">
+          <span class="tag">${c.region}</span>
+          <span class="tag green">Cost: ${c.costIndex}</span>
+          <span class="tag">Pop: ${c.popularity}</span>
+        </div>
+      </div>
+      <div class="result-actions">
+        <button class="btn btn-sm btn-primary" onclick="openAddToTrip('city','${c.name}','${c.country}')">+ Add to Trip</button>
+        <button class="btn btn-sm btn-outline" onclick="showToast('${c.name} saved!')">♥ Save</button>
+      </div>
+    </div>`).join('') || '<p style="color:var(--gray3);padding:1rem">No cities found.</p>';
+}
+
+function filterCities() { renderCities(); }
+
+function renderActivities() {
+  const query = (document.getElementById('actSearchInput') || { value: '' }).value.toLowerCase();
+  const type = (document.getElementById('actTypeFilter') || { value: '' }).value;
+  const costTier = (document.getElementById('actCostFilter') || { value: '' }).value;
+  const filtered = sampleActivities.filter(a =>
+    (!query || a.name.toLowerCase().includes(query) || a.type.toLowerCase().includes(query)) &&
+    (!type || a.type === type) &&
+    (!costTier || a.costTier === costTier)
+  );
+  const el = document.getElementById('activityResultsList');
+  el.innerHTML = filtered.map(a => `
+    <div class="search-result-item">
+      <div class="result-icon">${a.icon}</div>
+      <div class="result-info">
+        <h4>${a.name}</h4>
+        <p>${a.type} · ${a.duration} duration</p>
+        <p style="margin-top:0.2rem;font-size:0.75rem">${a.desc}</p>
+        <div class="result-tags">
+          <span class="tag">${a.type}</span>
+          <span class="tag green">${a.cost ? '$' + a.cost : 'Free'}</span>
+          <span class="tag">${a.duration}</span>
+        </div>
+      </div>
+      <div class="result-actions">
+        <div class="result-price">${a.cost ? '$' + a.cost : 'Free'}</div>
+        <button class="btn btn-sm btn-primary" onclick="openAddToTrip('activity','${a.name}',${a.cost})">+ Add to Trip</button>
+        <button class="btn btn-sm btn-outline" onclick="showToast('${a.name} added to wishlist!')">♥ Save</button>
+      </div>
+    </div>`).join('') || '<p style="color:var(--gray3);padding:1rem">No activities found.</p>';
+}
+
+function filterActivities() { renderActivities(); }
+
+function openAddToTrip(type, name, extra) {
+  state.pendingAddItem = { type, name, extra };
+  const sel = document.getElementById('addToTripSelect');
+  sel.innerHTML = state.trips.length ? state.trips.map(t => `<option value="${t.id}">${t.name}</option>`).join('') : '<option value="">No trips</option>';
+  document.getElementById('addToTripTitle').textContent = type === 'city' ? `Add ${name} to Trip` : `Add "${name}" to Itinerary`;
+  const extra2 = document.getElementById('addToTripExtra');
+  if (type === 'activity') {
+    extra2.innerHTML = `<div class="form-group"><label>Section</label><select id="addToTripSection"></select></div>`;
+    sel.onchange = () => {
+      const tid = parseInt(sel.value);
+      const trip = state.trips.find(t => t.id === tid);
+      const secSel = document.getElementById('addToTripSection');
+      if (secSel && trip) secSel.innerHTML = (trip.sections || []).map(s => `<option value="${s.id}">${s.title}</option>`).join('');
+    };
+    sel.onchange();
+  } else { extra2.innerHTML = ''; }
+  document.getElementById('modalAddToTrip').classList.add('open');
+}
+
+async function confirmAddToTrip() {
+  const tid = parseInt(document.getElementById('addToTripSelect').value);
+  const trip = state.trips.find(t => t.id === tid);
+  if (!trip) { showToast('No trip found'); return; }
+  const item = state.pendingAddItem;
+  if (!item) return;
+  if (item.type === 'city') {
+    const newId = Math.max(0, ...(trip.sections || []).map(s => s.id)) + 1;
+    trip.sections = [...(trip.sections || []), { id: newId, title: 'Stop – ' + item.name, city: item.name, dateRange: '', activities: [] }];
+    showToast(item.name + ' added to ' + trip.name);
+  } else if (item.type === 'activity') {
+    const secId = parseInt((document.getElementById('addToTripSection') || { value: 0 }).value);
+    const sec = (trip.sections || []).find(s => s.id === secId) || (trip.sections || [])[0];
+    if (sec) { sec.activities = [...(sec.activities || []), { name: item.name, cost: parseFloat(item.extra) || 0 }]; }
+    showToast('"' + item.name + '" added to ' + trip.name);
+  }
+  await saveTripDoc(trip);
+  closeModal('modalAddToTrip');
+}
+
+function initBudgetScreen() {
+  const sel = document.getElementById('budgetTripSelect');
+  sel.innerHTML = state.trips.length ? state.trips.map(t => `<option value="${t.id}">${t.name}</option>`).join('') : '<option value="">No trips</option>';
+  renderBudget();
+}
+
+function renderBudget() {
+  const id = parseInt(document.getElementById('budgetTripSelect').value);
+  const trip = state.trips.find(t => t.id === id);
+  const el = document.getElementById('budgetContent');
+  if (!trip) { el.innerHTML = '<p style="color:var(--gray3)">No trip selected.</p>'; return; }
+
+  const totalBudget = parseFloat(trip.budget) || 0;
+  const actTotal = (trip.sections || []).reduce((s, sec) => (sec.activities || []).reduce((ss, a) => ss + (a.cost || 0), s), 0);
+  const spent = actTotal;
+  const remaining = totalBudget - spent;
+  const pct = totalBudget ? Math.min(100, Math.round(spent / totalBudget * 100)) : 0;
+
+  const transport = Math.round(spent * 0.3);
+  const stay = Math.round(spent * 0.4);
+  const activities = Math.round(spent * 0.2);
+  const meals = spent - transport - stay - activities;
+  const overBudget = spent > totalBudget && totalBudget > 0;
+
+  el.innerHTML = `
+    ${overBudget ? `<div class="alert-row"><span class="icon">⚠️</span> <b>Over budget!</b> Your estimated spend exceeds the set budget by $${Math.abs(remaining).toLocaleString()}.</div>` : ''}
+    <div class="budget-overview">
+      <div class="budget-big">
+        <div class="label">Total Budget</div>
+        <div class="amount">$${totalBudget.toLocaleString()}</div>
+        <div class="sub">Across ${(trip.sections || []).length} sections</div>
+        <div style="height:6px;background:rgba(255,255,255,0.15);margin-top:1rem;border-radius:3px">
+          <div style="width:${pct}%;height:100%;background:${overBudget ? '#e74c3c' : 'var(--gold-light)'};border-radius:3px;transition:width 0.5s"></div>
+        </div>
+        <div style="font-size:0.72rem;color:var(--mist);margin-top:0.3rem">${pct}% spent · $${Math.max(0, remaining).toLocaleString()} remaining</div>
+      </div>
+      <div>
+        <div class="card" style="margin-bottom:0.7rem">
+          <div class="card-title">Cost Summary</div>
+          <div style="display:flex;justify-content:space-between;font-size:0.82rem;padding:0.3rem 0;border-bottom:1px solid var(--gray1)"><span>Estimated spend</span><b>$${spent.toLocaleString()}</b></div>
+          <div style="display:flex;justify-content:space-between;font-size:0.82rem;padding:0.3rem 0;border-bottom:1px solid var(--gray1)"><span>Average / day</span><b>$${trip.sections && trip.sections.length ? Math.round(spent / trip.sections.length) : 0}</b></div>
+          <div style="display:flex;justify-content:space-between;font-size:0.82rem;padding:0.3rem 0"><span style="color:${overBudget ? 'var(--red)' : 'var(--fern)'}">Remaining</span><b style="color:${overBudget ? 'var(--red)' : 'var(--fern)'}">$${remaining.toLocaleString()}</b></div>
+        </div>
+        <div class="pie-wrap">
+          <svg class="pie-svg" width="90" height="90" viewBox="0 0 90 90">
+            ${makePieChart([
+              { pct: 30, color: 'var(--forest)' }, { pct: 40, color: 'var(--fern)' },
+              { pct: 20, color: 'var(--gold)' }, { pct: 10, color: 'var(--sage)' }
+            ])}
+          </svg>
+          <div class="pie-legend">
+            <div class="pie-legend-item"><div class="pie-dot" style="background:var(--forest)"></div>Transport ${transport ? '$' + transport : '-'}</div>
+            <div class="pie-legend-item"><div class="pie-dot" style="background:var(--fern)"></div>Stay ${stay ? '$' + stay : '-'}</div>
+            <div class="pie-legend-item"><div class="pie-dot" style="background:var(--gold)"></div>Activities ${activities ? '$' + activities : '-'}</div>
+            <div class="pie-legend-item"><div class="pie-dot" style="background:var(--sage)"></div>Meals ${meals ? '$' + meals : '-'}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="budget-breakdown">
+      ${[['🚗 Transport', transport, 30], ['🏨 Accommodation', stay, 40], ['🎭 Activities', activities, 20], ['🍽️ Meals & Dining', meals, 10]].map(([cat, val, p]) => `
+        <div class="breakdown-item">
+          <div class="cat">${cat}</div>
+          <div class="val">$${val}</div>
+          <div class="bar"><div class="bar-fill" style="width:${p}%"></div></div>
+        </div>`).join('')}
+    </div>`;
+}
+
+function makePieChart(slices) {
+  let total = slices.reduce((s, sl) => s + sl.pct, 0);
+  let angle = -90;
+  const cx = 45, cy = 45, r = 38;
+  return slices.map(sl => {
+    const a1 = angle, a2 = angle + sl.pct / total * 360;
+    angle = a2;
+    const x1 = cx + r * Math.cos(a1 * Math.PI / 180), y1 = cy + r * Math.sin(a1 * Math.PI / 180);
+    const x2 = cx + r * Math.cos(a2 * Math.PI / 180), y2 = cy + r * Math.sin(a2 * Math.PI / 180);
+    const large = sl.pct / total > 0.5 ? 1 : 0;
+    return `<path d="M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${large},1 ${x2},${y2} Z" fill="${sl.color}"/>`;
+  }).join('');
+}
+
+function initPackingScreen() {
+  const sel = document.getElementById('packingTripSelect');
+  sel.innerHTML = state.trips.length ? state.trips.map(t => `<option value="${t.id}">${t.name}</option>`).join('') : '<option value="">No trips</option>';
+  state.trips.forEach(t => {
+    if (!t.packing) {
+      t.packing = {};
+      Object.entries(defaultPacking).forEach(([cat, items]) => { t.packing[cat] = items.map(name => ({ name, checked: false })); });
+    }
+  });
+  renderPacking();
+}
+
+function renderPacking() {
+  const id = parseInt(document.getElementById('packingTripSelect').value);
+  const trip = state.trips.find(t => t.id === id);
+  const el = document.getElementById('packingContent');
+  if (!trip) { el.innerHTML = '<p style="color:var(--gray3)">No trip selected.</p>'; return; }
+  if (!trip.packing) {
+    trip.packing = {};
+    Object.entries(defaultPacking).forEach(([cat, items]) => { trip.packing[cat] = items.map(name => ({ name, checked: false })); });
+  }
+  el.innerHTML = Object.entries(trip.packing).map(([cat, items]) => `
+    <div class="checklist-category">
+      <div class="checklist-category-header" onclick="toggleCategory(this)">
+        📦 ${cat} <span style="margin-left:auto">${items.filter(i => i.checked).length}/${items.length} packed ▾</span>
+      </div>
+      ${items.map((item, ii) => `
+        <div class="checklist-item${item.checked ? ' checked' : ''}">
+          <input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem(${id},'${cat}',${ii},this.checked)">
+          <span>${item.name}</span>
+          <button class="del-item" onclick="deletePackItem(${id},'${cat}',${ii})">✕</button>
+        </div>`).join('')}
+      <div class="add-item-row">
+        <input type="text" placeholder="Add item to ${cat}..." id="additem-${cat.replace(/\s/g, '_')}" onkeypress="if(event.key==='Enter')addItemToCategory(${id},'${cat}')">
+        <button class="btn btn-sm btn-primary" onclick="addItemToCategory(${id},'${cat}')">+</button>
+      </div>
+    </div>`).join('');
+  updateProgress(trip);
+}
+
+function toggleCategory(header) {
+  const parent = header.parentElement;
+  const items = parent.querySelectorAll('.checklist-item,.add-item-row');
+  items.forEach(i => i.style.display = i.style.display === 'none' ? '' : 'none');
+}
+
+async function toggleItem(tripId, cat, idx, val) {
+  const trip = state.trips.find(t => t.id === tripId);
+  if (trip && trip.packing && trip.packing[cat]) {
+    trip.packing[cat][idx].checked = val;
+    renderPacking();
+    await saveTripDoc(trip);
+  }
+}
+
+async function deletePackItem(tripId, cat, idx) {
+  const trip = state.trips.find(t => t.id === tripId);
+  if (trip && trip.packing && trip.packing[cat]) {
+    trip.packing[cat].splice(idx, 1);
+    renderPacking();
+    await saveTripDoc(trip);
+  }
+}
+
+async function addItemToCategory(tripId, cat) {
+  const trip = state.trips.find(t => t.id === tripId);
+  const inputId = 'additem-' + cat.replace(/\s/g, '_');
+  const input = document.getElementById(inputId);
+  if (!input || !input.value.trim()) return;
+  if (trip && trip.packing && trip.packing[cat]) { trip.packing[cat].push({ name: input.value.trim(), checked: false }); }
+  input.value = '';
+  renderPacking();
+  await saveTripDoc(trip);
+}
+
+async function resetPacking() {
+  const id = parseInt(document.getElementById('packingTripSelect').value);
+  const trip = state.trips.find(t => t.id === id);
+  if (trip && trip.packing) { Object.values(trip.packing).forEach(items => items.forEach(i => i.checked = false)); }
+  renderPacking();
+  await saveTripDoc(trip);
+  showToast('Packing list reset!');
+}
+
+function showPackingProgress() { document.getElementById('packingProgress').style.display = 'block'; }
+
+function updateProgress(trip) {
+  if (!trip.packing) return;
+  const all = Object.values(trip.packing).flat();
+  const done = all.filter(i => i.checked).length;
+  const pct = all.length ? Math.round(done / all.length * 100) : 0;
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressLabel').textContent = `${done} of ${all.length} items packed`;
+}
+
+function openAddChecklistItemModal() { document.getElementById('modalAddChecklistItem').classList.add('open'); }
+
+async function addCustomChecklistItem() {
+  const id = parseInt(document.getElementById('packingTripSelect').value);
+  const trip = state.trips.find(t => t.id === id);
+  const cat = document.getElementById('newItemCategory').value;
+  const name = document.getElementById('newItemName').value.trim();
+  if (!name || !trip) return;
+  if (!trip.packing) trip.packing = {};
+  if (!trip.packing[cat]) trip.packing[cat] = [];
+  trip.packing[cat].push({ name, checked: false });
+  closeModal('modalAddChecklistItem');
+  renderPacking();
+  await saveTripDoc(trip);
+  showToast('Item added!');
+}
+
+function renderCommunity() {
+  const posts = [...seedPosts, ...(state.posts || [])];
+  const el = document.getElementById('communityPosts');
+  el.innerHTML = posts.map(p => `
+    <div class="community-post">
+      <div class="post-avatar">${p.avatar || '👤'}</div>
+      <div class="post-body">
+        <span class="author">${p.author}</span>
+        <span class="time">${p.time || 'just now'}</span>
+        <div class="content">${p.content}</div>
+        ${p.trip ? `<div class="trip-ref">📌 Trip: ${p.trip}</div>` : ''}
+        <div class="post-actions">
+          <button class="post-act-btn${p.liked ? ' liked' : ''}" onclick="toggleLike('${p.id}')">♥ ${p.likes || 0}</button>
+          <button class="post-act-btn">💬 Comment</button>
+          <button class="post-act-btn" onclick="showToast('Link copied!')">🔗 Share</button>
+        </div>
+      </div>
+    </div>`).join('');
+
+  const contrib = document.getElementById('topContributors');
+  contrib.innerHTML = ['Maria K. 🌺', 'James R. 🧔', 'Priya S. 🌸', 'Alex T. 🧭'].map((n, i) => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:0.4rem 0;border-bottom:1px solid var(--gray1);font-size:0.78rem">
+      <span>${n}</span><span style="color:var(--gold);font-weight:600">${[22, 18, 14, 8][i]} posts</span>
+    </div>`).join('');
+
+  const sel = document.getElementById('postTripRef');
+  if (sel) sel.innerHTML = '<option value="">No trip</option>' + state.trips.map(t => `<option value="${t.name}">${t.name}</option>`).join('');
+}
+
+async function toggleLike(id) {
+  const allPosts = [...seedPosts, ...state.posts];
+  const p = allPosts.find(p => String(p.id) === String(id));
+  if (!p) return;
+  p.liked = !p.liked;
+  p.likes = (p.likes || 0) + (p.liked ? 1 : -1);
+  if (p.firestoreId) {
+    try {
+      await db.doc('community/' + p.firestoreId).update({ likes: firebase.firestore.FieldValue.increment(p.liked ? 1 : -1) });
+    } catch (e) {}
+  }
+  renderCommunity();
+}
+
+function openPostModal() { document.getElementById('modalPost').classList.add('open'); }
+
+async function submitPost() {
+  const content = document.getElementById('postContent').value.trim();
+  const trip = document.getElementById('postTripRef').value;
+  if (!content) { showToast('Please write something!'); return; }
+  const post = {
+    author: state.user.name,
+    avatar: '🧭',
+    content,
+    trip,
+    likes: 0,
+    time: 'just now',
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+  try {
+    const docRef = await db.collection('community').add(post);
+    state.posts = [{ ...post, id: docRef.id, firestoreId: docRef.id, liked: false }, ...(state.posts || [])];
+    document.getElementById('postContent').value = '';
+    closeModal('modalPost');
+    renderCommunity();
+    showToast('Post shared with community!');
+  } catch (e) {
+    showToast('Failed to post: ' + e.message);
+  }
+}
+
+function renderProfile() {
+  document.getElementById('profileNameDisplay').textContent = state.user.name || 'Explorer';
+  document.getElementById('profileEmailDisplay').textContent = state.user.email || '';
+  if (state.user.avatar) {
+    document.getElementById('profileAvatarDisplay').innerHTML = `<img src="${state.user.avatar}" style="width:100%;height:100%;object-fit:cover">`;
+  }
+  document.getElementById('editName').value = state.user.name || '';
+  document.getElementById('editEmail').value = state.user.email || '';
+  document.getElementById('editCity').value = state.user.city || '';
+  document.getElementById('editCountry').value = state.user.country || '';
+  document.getElementById('settingName').value = state.user.name || '';
+  document.getElementById('settingEmail').value = state.user.email || '';
+
+  const planned = state.trips.filter(t => t.status === 'upcoming' || t.status === 'ongoing');
+  const previous = state.trips.filter(t => t.status === 'completed');
+  const mkMini = arr => arr.length ? arr.map(t => `<div class="trip-mini-card" onclick="goTo('itinerary-view')"><div class="mini-icon">✈️</div><div class="mini-name">${t.name}</div><div class="mini-date">${t.dest || ''}</div><button class="btn btn-sm btn-outline" style="margin-top:0.4rem;font-size:0.65rem" onclick="event.stopPropagation()">View</button></div>`).join('') : '<p style="color:var(--gray3);font-size:0.82rem">None yet.</p>';
+  document.getElementById('profilePlannedTrips').innerHTML = mkMini(planned);
+  document.getElementById('profilePreviousTrips').innerHTML = mkMini(previous);
+}
+
+function openEditProfileModal() { document.getElementById('modalEditProfile').classList.add('open'); }
+
+async function saveProfile() {
+  state.user.name = document.getElementById('editName').value || state.user.name;
+  state.user.email = document.getElementById('editEmail').value || state.user.email;
+  state.user.city = document.getElementById('editCity').value;
+  state.user.country = document.getElementById('editCountry').value;
+  updateSidebarUser();
+  if (auth.currentUser) {
+    try {
+      await db.doc('users/' + auth.currentUser.uid).update({
+        name: state.user.name,
+        email: state.user.email,
+        city: state.user.city,
+        country: state.user.country
+      });
+    } catch (e) { showToast('Profile sync error: ' + e.message); }
+  }
+  closeModal('modalEditProfile');
+  renderProfile();
+  showToast('Profile updated!');
+}
+
+async function saveSettings() {
+  state.user.name = document.getElementById('settingName').value || state.user.name;
+  state.user.email = document.getElementById('settingEmail').value || state.user.email;
+  updateSidebarUser();
+  if (auth.currentUser) {
+    try {
+      await db.doc('users/' + auth.currentUser.uid).update({ name: state.user.name, email: state.user.email });
+    } catch (e) {}
+  }
+  showToast('Settings saved!');
+}
+
+function initShareScreen() {
+  const sel = document.getElementById('shareTripSelect');
+  sel.innerHTML = state.trips.length ? state.trips.map(t => `<option value="${t.id}">${t.name}</option>`).join('') : '<option value="">No trips</option>';
+  renderSharedView();
+}
+
+function renderSharedView() {
+  const id = parseInt(document.getElementById('shareTripSelect').value);
+  const trip = state.trips.find(t => t.id === id);
+  const el = document.getElementById('sharedViewContent');
+  if (!trip) { el.innerHTML = '<p style="color:var(--gray3)">No trip selected.</p>'; return; }
+  const shareUrl = `https://travelloop.app/share/${btoa(trip.name.substring(0, 10) + trip.id)}`;
+  el.innerHTML = `
+    <div class="public-banner">
+      <h2>✈️ ${trip.name}</h2>
+      <p>${trip.dest || ''} · ${trip.start || 'TBD'} → ${trip.end || 'TBD'}</p>
+    </div>
+    <div class="public-url">
+      <span>${shareUrl}</span>
+      <button class="btn btn-sm btn-outline" onclick="showToast('Link copied to clipboard!')">📋 Copy</button>
+    </div>
+    <div class="share-row" style="margin-bottom:1.5rem">
+      <button class="btn btn-sm btn-primary" onclick="showToast('Shared on WhatsApp!')">📱 WhatsApp</button>
+      <button class="btn btn-sm btn-outline" onclick="showToast('Shared on Twitter!')">🐦 Twitter</button>
+      <button class="btn btn-sm btn-outline" onclick="showToast('Shared on Instagram!')">📸 Instagram</button>
+      <button class="btn btn-sm btn-gold" onclick="showToast('Trip copied to your account!')">📋 Copy Trip</button>
+    </div>
+    <div class="card">
+      <div class="card-title">Read-only Itinerary Preview</div>
+      ${(trip.sections || []).map(sec => `
+        <div style="border-left:3px solid var(--fern);padding:0.5rem 0.8rem;margin-bottom:0.7rem">
+          <div style="font-size:0.82rem;font-weight:600;color:var(--forest)">${sec.title}</div>
+          ${sec.dateRange ? `<div style="font-size:0.72rem;color:var(--gray3)">${sec.dateRange}</div>` : ''}
+          ${(sec.activities || []).map(a => `<div style="font-size:0.78rem;color:var(--gray4);padding:0.2rem 0">• ${a.name}${a.cost ? ' – $' + a.cost : ''}</div>`).join('')}
+        </div>`).join('') || '<p style="color:var(--gray3);font-size:0.82rem">No itinerary built yet.</p>'}
+    </div>`;
+}
+
+let currentNoteFilter = 'all';
+
+function initNotesScreen() {
+  const sel = document.getElementById('notesTripSelect');
+  sel.innerHTML = state.trips.length ? state.trips.map(t => `<option value="${t.id}">${t.name}</option>`).join('') : '<option value="">No trips</option>';
+  renderNotes();
+}
+
+function renderNotes() {
+  const id = parseInt(document.getElementById('notesTripSelect').value);
+  const el = document.getElementById('notesContent');
+  const tripNotes = (state.notes || []).filter(n => !id || n.tripId === id);
+  const filtered = currentNoteFilter === 'all' ? tripNotes : tripNotes.filter(n => n.type === currentNoteFilter);
+  if (!filtered.length) {
+    el.innerHTML = '<p style="color:var(--gray3);font-size:0.82rem;padding:1rem 0">No notes yet. <a onclick="openAddNoteModal()" style="color:var(--forest);cursor:pointer;font-weight:600">Add your first note →</a></p>';
+    return;
+  }
+  el.innerHTML = filtered.map(n => `
+    <div class="note-card">
+      <div class="note-header">
+        <span class="note-title">📝 ${n.title || 'Untitled Note'}</span>
+        <div style="display:flex;gap:0.4rem;align-items:center">
+          <span class="note-meta">${n.type === 'stop' ? 'Stop note' : 'Trip note'} · ${n.timestamp}</span>
+          <button class="btn btn-sm" style="background:none;border:1px solid #fcc;color:var(--red);font-size:0.68rem;padding:0.2rem 0.5rem;cursor:pointer" onclick="deleteNote('${n.firestoreId}')">✕</button>
+        </div>
+      </div>
+      <div class="note-body">${n.body}</div>
+    </div>`).join('');
+}
+
+function filterNotes(tab, type) {
+  currentNoteFilter = type;
+  document.querySelectorAll('.note-tab').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active');
+  renderNotes();
+}
+
+function openAddNoteModal() { document.getElementById('modalAddNote').classList.add('open'); }
+
+async function saveNote() {
+  const title = document.getElementById('noteTitle').value.trim();
+  const body = document.getElementById('noteBody').value.trim();
+  const type = document.getElementById('noteType').value;
+  const tripId = parseInt(document.getElementById('notesTripSelect').value);
+  if (!body) { showToast('Please write a note!'); return; }
+  const now = new Date();
+  const note = { title, body, type, tripId, timestamp: now.toLocaleDateString() + ' ' + now.toLocaleTimeString() };
+  try {
+    if (auth.currentUser) {
+      const docRef = await db.collection('users/' + auth.currentUser.uid + '/notes').add(note);
+      state.notes = [...(state.notes || []), { ...note, firestoreId: docRef.id }];
+    } else {
+      state.notes = [...(state.notes || []), { ...note, firestoreId: 'local_' + Date.now() }];
+    }
+    document.getElementById('noteTitle').value = '';
+    document.getElementById('noteBody').value = '';
+    closeModal('modalAddNote');
+    renderNotes();
+    showToast('Note saved!');
+  } catch (e) {
+    showToast('Failed to save note: ' + e.message);
+  }
+}
+
+async function deleteNote(firestoreId) {
+  state.notes = state.notes.filter(n => n.firestoreId !== firestoreId);
+  if (auth.currentUser && firestoreId && !firestoreId.startsWith('local_')) {
+    try {
+      await db.doc('users/' + auth.currentUser.uid + '/notes/' + firestoreId).delete();
+    } catch (e) {}
+  }
+  renderNotes();
+  showToast('Note deleted');
+}
+
+function initInvoiceScreen() {
+  const sel = document.getElementById('invoiceTripSelect');
+  sel.innerHTML = state.trips.length ? state.trips.map(t => `<option value="${t.id}">${t.name}</option>`).join('') : '<option value="">No trips</option>';
+  renderInvoice();
+}
+
+function renderInvoice() {
+  const id = parseInt(document.getElementById('invoiceTripSelect').value);
+  const trip = state.trips.find(t => t.id === id);
+  const el = document.getElementById('invoiceContent');
+  if (!trip) { el.innerHTML = '<p style="color:var(--gray3)">No trip selected.</p>'; return; }
+
+  const rows = [];
+  let subtotal = 0;
+  (trip.sections || []).forEach(sec => {
+    (sec.activities || []).forEach(a => {
+      const qty = 1;
+      const amount = (a.cost || 0) * qty;
+      subtotal += amount;
+      rows.push({ no: rows.length + 1, cat: sec.title, item: a.name, desc: 'Activity', qty, unit: a.cost || 0, amount });
+    });
+    if (sec.budget) { rows.push({ no: rows.length + 1, cat: sec.title, item: 'Section Budget (Estimated)', desc: 'Accommodation & misc', qty: 1, unit: parseFloat(sec.budget), amount: parseFloat(sec.budget) }); subtotal += parseFloat(sec.budget); }
+  });
+  if (!rows.length) rows.push(
+    { no: 1, cat: 'General', item: 'Estimated trip cost', desc: 'Overall estimate', qty: 1, unit: parseFloat(trip.budget) || 0, amount: parseFloat(trip.budget) || 0 },
+    { no: 2, cat: 'Transport', item: 'Flight bookings (Est. + VIP)', desc: 'Round trip', qty: 1, unit: 30000, amount: 30000 }
+  );
+
+  const tax = Math.round(subtotal * 0.18);
+  const grand = subtotal + tax;
+
+  el.innerHTML = `
+    <div class="invoice-card">
+      <div class="invoice-header">
+        <div class="invoice-logo-area">
+          <div style="font-size:2.5rem;margin-bottom:0.3rem">🌿</div>
+          <h3>TravelLoop Adventures</h3>
+          <p>Trip Expense Invoice</p>
+          <p style="margin-top:0.5rem;font-size:0.72rem;color:var(--gray3)">${state.user.name}<br>${state.user.email}</p>
+        </div>
+        <div class="invoice-meta">
+          <div>Invoice #: <strong>TL-${String(id).padStart(4, '0')}</strong></div>
+          <div>Trip: <strong>${trip.name}</strong></div>
+          <div>Destination: <strong>${trip.dest || 'TBD'}</strong></div>
+          <div>Travel Dates: <strong>${trip.start || 'TBD'} – ${trip.end || 'TBD'}</strong></div>
+          <div>Payment status: <strong style="color:var(--gold)">Pending</strong></div>
+          <div style="margin-top:0.5rem">Total Budget: <strong>$${trip.budget || 0}</strong></div>
+          <div style="margin-top:0.3rem"><button class="btn btn-sm btn-gold" onclick="showToast('Full budget view opened!')">View Full Budget</button></div>
+        </div>
+      </div>
+      <table class="invoice-table">
+        <thead><tr><th>#</th><th>Category</th><th>Item</th><th>Description</th><th>Qty</th><th>Unit Cost</th><th>Amount</th></tr></thead>
+        <tbody>
+          ${rows.map(r => `<tr><td>${r.no}</td><td>${r.cat}</td><td>${r.item}</td><td>${r.desc}</td><td>${r.qty}</td><td>$${r.unit.toLocaleString()}</td><td><strong>$${r.amount.toLocaleString()}</strong></td></tr>`).join('')}
+        </tbody>
+      </table>
+      <div class="invoice-totals" style="margin-top:1rem">
+        <div class="invoice-totals-inner">
+          <div class="invoice-total-row"><span>Subtotal</span><span>$${subtotal.toLocaleString()}</span></div>
+          <div class="invoice-total-row"><span>Tax (18%)</span><span>$${tax.toLocaleString()}</span></div>
+          <div class="invoice-total-row grand"><span>Grand Total</span><span>$${grand.toLocaleString()}</span></div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function renderAdmin() {
+  document.getElementById('adminTotalTrips').textContent = state.trips.length;
+  document.getElementById('adminActivities').textContent = state.trips.reduce((s, t) => (t.sections || []).reduce((ss, sec) => ss + (sec.activities || []).length, s), 0);
+  const totalBudget = state.trips.reduce((s, t) => s + (parseFloat(t.budget) || 0), 0);
+  document.getElementById('adminBudget').textContent = '$' + totalBudget.toLocaleString();
+
+  const barEl = document.getElementById('adminBarChart');
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'];
+  const vals = months.map(() => Math.max(5, Math.random() * 70 + 10));
+  const maxV = Math.max(...vals);
+  barEl.innerHTML = months.map((m, i) => `<div class="bar-chart-bar" style="height:${Math.round(vals[i] / maxV * 100)}%" title="${m}: ${Math.round(vals[i])}"><span class="bar-label">${m}</span></div>`).join('');
+
+  const tbody = document.getElementById('adminTripsBody');
+  tbody.innerHTML = state.trips.length ? state.trips.map((t, i) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td>${t.name}</td>
+      <td>${t.dest || '–'}</td>
+      <td><span class="status-badge ${t.status === 'ongoing' ? 'badge-ongoing' : t.status === 'upcoming' ? 'badge-upcoming' : 'badge-completed'}">${t.status}</span></td>
+      <td>${t.budget ? '$' + parseFloat(t.budget).toLocaleString() : '–'}</td>
+    </tr>`).join('') : '<tr><td colspan="5" style="color:var(--gray3);text-align:center">No trips yet</td></tr>';
+
+  const cities = state.trips.map(t => t.dest).filter(Boolean);
+  const cityCount = {};
+  cities.forEach(c => cityCount[c] = (cityCount[c] || 0) + 1);
+  const topEl = document.getElementById('adminTopCities');
+  const sorted = Object.entries(cityCount).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  if (!sorted.length) { topEl.innerHTML = '<p style="color:var(--gray3);font-size:0.78rem">No data yet.</p>'; }
+  else topEl.innerHTML = sorted.map(([city, count]) => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:0.4rem 0;border-bottom:1px solid var(--gray1);font-size:0.78rem">
+      <span>🌍 ${city}</span><span class="tag green">${count} trip${count > 1 ? 's' : ''}</span>
+    </div>`).join('');
+
+  document.getElementById('adminUsersBody').innerHTML = `<tr>
+    <td>${state.user.name}</td>
+    <td>${state.user.email}</td>
+    <td>${state.trips.length}</td>
+    <td><button class="btn btn-sm btn-outline" onclick="showToast('User details opened')">View</button></td>
+  </tr>`;
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m => m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); }));
+
+function switchTab(btn, paneId) {
+  const parent = btn.closest('.tabs, .note-tabs');
+  if (parent) { parent.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); }
+  const pane = document.getElementById(paneId);
+  if (!pane) return;
+  const allPanes = pane.parentElement.querySelectorAll('.tab-pane');
+  allPanes.forEach(p => p.classList.remove('active'));
+  pane.classList.add('active');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+auth.onAuthStateChanged(async (user) => {
+  if (user) {
+    setLoading(true);
+    try {
+      await loadUserData(user);
+    } catch (e) {
+      console.error('loadUserData error:', e);
+    }
+    setLoading(false);
+    goTo('dashboard');
+    showToast('Welcome back, ' + (state.user.name.split(' ')[0] || 'Explorer') + '!');
+  } else {
+    goTo('login');
+  }
+});
+</script>
+</body>
+</html>
